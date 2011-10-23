@@ -7,10 +7,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import linty.app as la
 import linty.checks as lc
+import linty.indent as li
 
 BASE_PATH = os.path.dirname(__file__)
 
-CONFIG = [
+AST_CHECKS = [
+    li.IndentationCheck()
+    ]
+
+FILE_CHECKS = [
     # ------------------------------------------------------------------------
     # Text-Level Checks.
     # ------------------------------------------------------------------------
@@ -30,7 +35,7 @@ CONFIG = [
     ]
 
 def main():
-    return la.main(CONFIG)
+    return la.main(AST_CHECKS, FILE_CHECKS)
 
 if __name__ == '__main__':
     sys.exit(main())

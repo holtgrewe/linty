@@ -13,16 +13,19 @@ import bisect
 import sys
 import re
 
+import linty.violations as lv
+
 
 class Check(object):
     """Base class for all checks."""
 
+    def __init__(self):
+        self.violations = set()
+
     def process(self, filename, fcontents, flines):
         # TODO(holtgrew): reset message collector?
         # Check file extension?
-        res = []
-        res += self.processFiltered(filename, fcontents, flines)
-        return res
+        self.processFiltered(filename, fcontents, flines)
     
     def beginProcessing(self):
         pass
@@ -38,6 +41,7 @@ class HeaderCheck(Check):
     """
 
     def __init__(self, path=None, lines=None):
+        super(HeaderCheck, self).__init__()
         self.path = path
         self.lines = lines
         if self.path and self.lines:
@@ -56,8 +60,10 @@ class HeaderCheck(Check):
         for i in range(0, len(self.lines)):
             line_is_good = self.checkLine(i, self.lines[i], flines[i])
             if not line_is_good:
-                print >>sys.stderr, '%s: Header invalid at line %i, stopping.' % (path, i)
-        return []
+                v = lv.RuleViolation('style.header', path, i + 1, 1,
+                                     'Invalid header!')
+                self.violations.add(v)
+                break  # Stop comparison
 
     def checkLine(self, num, expected, actual):
         return expected == actual
@@ -86,8 +92,9 @@ class OnlyUnixLineEndings(Check):
     def processFiltered(self, path, fcontents, files):
         for i, line in enumerate(fcontents.splitlines(True)):
             if line.endswith('\r\n'):
-                print >>sys.stderr, '%s:%d: Ends with CRLF (Windows line ending).' % (path, i + 1)
-        return []
+                v = lv.RuleViolation('whitespace.lineending', path, i, len(line),
+                                     'Line  with CRLF (Windows line ending)')
+                self.violations.add(v)
 
 
 class FileEndsWithNewlineCheck(Check):
@@ -103,7 +110,8 @@ class FileEndsWithNewlineCheck(Check):
         The parameters are the valid strings that are allowed as last
         characters in a file.
         """
-        
+        super(FileEndsWithNewlineCheck, self).__init__()
+
         if not args:
             args = ['\n']
         self.allowed_newlines = args
@@ -111,9 +119,10 @@ class FileEndsWithNewlineCheck(Check):
     def processFiltered(self, path, fcontents, flines):
         for nl in self.allowed_newlines:
             if fcontents.endswith(nl):
-                return []  # OK!
-        print >> sys.stderr, '%s: Did not end with valid newline char.' % path
-        return []
+                return  # OK!
+        v = lv.RuleViolation('whitespace.lineending', path, len(flines), len(flines[-1]),
+                             'File did not end with valid newline char.')
+        self.violations.add(v)
 
 
 class NoTrailingWhitespaceCheck(Check):
@@ -121,9 +130,11 @@ class NoTrailingWhitespaceCheck(Check):
 
     def processFiltered(self, path, fcontents, flines):
         for i, line in enumerate(flines):
-            if line != line.rstrip():
-                print >>sys.stderr, '%s:%d has trailing whitespace.' % (path, i + 1)
-        return []
+            rline = line.rstrip()
+            if line != rline:
+                v = lv.RuleViolation('whitespace.trailing', path, i + 1, len(rline) + 1,
+                                     'Trailing whitespace is not allowed.')
+                self.violations.add(v)
 
 
 class SourceFile(object):
@@ -149,7 +160,8 @@ class SourceLocation(object):
 def enumerateComments(filename, fcontents, flines):
     # Build line break index.
     line_starts = [0]
-    for line in flines:
+    slines = fcontents.splitlines(True)
+    for line in slines:
         line_starts.append(line_starts[-1] + len(line))
     #print line_starts
     # Search for all comments.
@@ -186,10 +198,16 @@ class TodoCommentChecker(Check):
                 # Check TODO comments.
                 match = re.match(RE_TODO, comment)
                 if match:
+                    ## print cstart, match.groups()
                     if len(match.group(1)) > 1:
-                        print >>sys.stderr, '%s:%d:%d There should be exactly one space before TODO.' % (path, cstart.line, cstart.column)
+                        v = lv.RuleViolation('whitespace.todo', path, cstart.line, cstart.column,
+                                             'There should be exactly one space before TODO.')
+                        self.violations.add(v)
                     if not match.group(2):
-                        print >>sys.stderr, 'TODO comments should look like this: "// TODO(username): Text".' % (path, cstart.line, cstart.column)
+                        v = lv.RuleViolation('whitespace.todo', path, cstart.line, cstart.column,
+                                             'TODO comments should look like this: "// TODO(username): Text".')
+                        self.violations.add(v)
                     if match.group(3) != ' ' and match.group(3) != '':
-                        print >>sys.stderr, '"TODO (username):" should be followed by a space.' % (path, cstart.line, cstart.column)
-        return []
+                        v = lv.RuleViolation('whitespace.todo', path, cstart.line, cstart.column,
+                                             '"TODO (username):" should be followed by a space.')
+                        self.violations.add(v)
