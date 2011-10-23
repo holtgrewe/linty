@@ -1,0 +1,4 @@
+Linty - Style Checking with Python & libclang
+=============================================
+
+Linty is a style checker built upon Python and libclang.  Its API 
