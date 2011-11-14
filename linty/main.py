@@ -139,7 +139,11 @@ class AstWalker(object):
         self.seen_files = set()
 
     def run(self):
+        for check in self.ast_checks:
+            check.beginTree(self.translation_unit.cursor)
         self._recurse(self.translation_unit.cursor)
+        for check in self.ast_checks:
+            check.endTree(self.translation_unit.cursor)
         self.filter.seenToBlocked(self.seen_files)
 
     def _recurse(self, node):

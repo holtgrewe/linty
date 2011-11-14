@@ -74,7 +74,7 @@ class ViolationPrinter(object):
         skipped_count = 0
         for violation in sorted(vs):
             if violation.rule_id in self.ignore_rules:
-                logging.debug('Skipping violation %s because rule ignore.', violation)
+                logging.debug('Skipping violation %s because rule is ignored.', violation)
                 skipped_count += 1
                 continue
             violation_count += 1
