@@ -62,10 +62,12 @@ class IndentationCheck(TreeCheck):
         self.level = 0
 
     def beginTree(self, node):
+        logging.debug('IndentationCheck: BEGIN TREE(%s)', node)
         assert len(self.handlers) == 0
         self.handlers = [RootHandler(self, 'root', node)]
 
     def endTree(self, node):
+        logging.debug('IndentationCheck: END TREE(%s)', node)
         assert len(self.handlers) == 1
         self.handlers = []
 

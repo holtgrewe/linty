@@ -39,7 +39,7 @@ class FilterSet(object):
 
     def accept(self, audit_event):
         # TODO(holtgrew): Write me
-        return true
+        return True
 
 
 class CachingFileReader(object):
@@ -101,16 +101,21 @@ class VisitAllowedFilter(object):
             return True
         # Don't visit if it has no location (built-in).
         if not _hasFileLocation(node):
+            logging.debug('Skipping %s because there is no file location.', node.displayname)
             return False
         return self.fileAllowed(node.location.file.name)
 
     def fileAllowed(self, filename):
         # Try to hit cache.
         if self.cache.has_key(filename):
+            logging.debug('fileAllowed(%s) ? hit cache -> %s',
+                          filename, self.cache[filename])
             return self.cache[filename]
         # Check whether the file is blocked.
         if filename in self.blocked_files:
             # print 'Blocked', node.location.file.name
+            logging.debug('fileAllowed(%s) ? -> blocked',
+                          filename, self.cache[filename])
             self.cache[filename] = False
             return False
         # Check whether node's location is below the include directories.  It is
@@ -122,6 +127,7 @@ class VisitAllowedFilter(object):
                 # print filename, x
                 result = True
                 break
+        logging.debug('fileAllowed(%s) ? -> %s', filename, {True: 'YES', False: 'NO'}[result])
         self.cache[filename] = result  # Save in cache.
         return result
 
@@ -150,7 +156,9 @@ class AstWalker(object):
         if _hasFileLocation(node):
             self.seen_files.add(node.location.file.name)
         if not self.filter.nodeAllowed(node):
+            logging.debug('AstWalker: Not allowed: %s', node)
             return False  # We did not visit this node.
+        logging.debug('AstWalker: Candidate %s', node)
         for check in self.ast_checks:
             check.enterNode(node)
         for child in node.get_children():
@@ -215,8 +223,10 @@ class Checker(object):
         logging.info('Translation unit: %s', translation_unit.spelling)
 
         # Run AST walk based checks.
+        logging.debug('AST Walk on %s, checks: %s', filename, self.ast_checks)
         ast_walker = AstWalker(translation_unit, self.ast_checks, self.options.include_dirs)
         ast_walker.run()
+        logging.debug('AST Walk DONE on %s', filename)
         self.seen_files |= ast_walker.seen_files
 
     def _processSimpleChecks(self, filename):
