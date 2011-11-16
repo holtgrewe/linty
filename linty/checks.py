@@ -21,11 +21,15 @@ class Check(object):
 
     def __init__(self):
         self.violations = set()
+        self.file_reader = None
 
     def process(self, filename, fcontents, flines):
         # TODO(holtgrew): reset message collector?
         # Check file extension?
         self.processFiltered(filename, fcontents, flines)
+
+    def setFileReader(self, file_reader):
+        self.file_reader = file_reader
     
     def beginProcessing(self):
         pass

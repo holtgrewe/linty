@@ -183,6 +183,7 @@ class Checker(object):
         # Startup.
         self._fireAuditStarted()
         for check in self.ast_checks + self.file_checks:
+            check.setFileReader(self.file_reader)
             check.beginProcessing()
         messages = set()
 

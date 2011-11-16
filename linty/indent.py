@@ -6,10 +6,21 @@ from __future__ import with_statement
 __author__ = 'Manuel Holtgrewe <manuel.holtgrewe@fu-berlin.de>'
 
 import logging
+import sys
 
+import linty.violations as lv
 import linty.checks as lc
 
 import clang.cindex as ci
+
+def lengthExpandedTabs(s, to_idx, tab_width):
+    l = 0
+    for i in range(0, to_idx):
+        if s[i] == '\t':
+            l += (l / tab_width + 1)  * tab_width
+        else:
+            l += 1
+    return l
 
 
 class TreeCheck(lc.Check):
@@ -28,12 +39,12 @@ class TreeCheck(lc.Check):
 
 class IndentLevel(object):
     def __init__(self, indent=None, base=None, offset=None):
-        assert indent or base or offset
+        assert (indent is not None) or (base is not None) or (offset is not None)
         self.levels = set()
-        if indent:
+        if indent is not None:
             self.levels.add(indent)
         else:
-            assert base and offset
+            assert (base is not None) and (offset is not None)
             for l in base.indent_levels:
                 levels.add(l + offset)
     
@@ -41,7 +52,8 @@ class IndentLevel(object):
         return len(levels) > 1
 
     def accept(self, indent):
-        return indent in levels
+        ##print 'accept(), level=', self.levels, 'indent=', indent
+        return indent in self.levels
 
     def gt(self, indent):
         return sorted(self.levels)[-1] > indent
@@ -54,7 +66,7 @@ class IndentLevel(object):
             self.levels.add(level)
 
     def __str__(self):
-        return '(%s)' % (', '.join(list(self.levels)))
+        return '(%s)' % (', '.join(map(str, list(self.levels))))
 
 
 class IndentSyntaxNodeHandler(object):
@@ -63,18 +75,16 @@ class IndentSyntaxNodeHandler(object):
         self.handler_name = handler_name
         self.node = node
         self.parent = parent
-        self.level = None
+        self.level = self._getLevelImpl()
+        self.violations = indentation_check.violations
 
-    def getLevel(self):
-        if not self.level:
-            self.level = self.getLevelImpl()
-        return self.level
-
-    def getLvelImpl(self):
-        return self.parent.suggestedChildLevel(self)
+    def _getLevelImpl(self):
+        res = self.parent.suggestedChildLevel(self)
+        ##print '_getLevelImpl()', self, self.parent, res
+        return res
 
     def suggestedChildLevel(self, indent_syntax_node_handler):
-        return None  # IndentLevel(self.getLevel(), self.getBasicOffset())
+        return self.level
 
     def logError(self, ast_node, subtype_name, actualLevel):
         pass  # Log an error
@@ -118,9 +128,6 @@ class IndentSyntaxNodeHandler(object):
     def getFirstLine(self, start_line, node):
         pass
 
-    def expandedTabsColumnNo(self, node):
-        pass
-
     def finalSubtreeLines(self, lines, ast_tree, allow_nesting):
         pass
     
@@ -136,57 +143,83 @@ class IndentSyntaxNodeHandler(object):
     def getBraceAdjustment(self):
         return self.indent_check.brace_adjustment
 
-    def checkRParent(self, left_paren, right_paren):
-        pass
-
-    def checkLParen(self, left_paren):
-        pass
+    def expandedTabsColumnNo(self, node):
+        npath, contents, lines = self.indentation_check.file_reader.readFile(node.location.file.name)
+        line = lines[node.location.line - 1]
+        return lengthExpandedTabs(line, node.location.column - 1, self.indentation_check.config.tab_width)
+        ##print >>sys.stderr, 'LINE:', line
 
 
 class BlockParenHandler(IndentSyntaxNodeHandler):
     def __init__(self, indentation_check, handler_name, node, parent):
         super(BlockParenHandler, self).__init__(indentation_check, handler_name, node, parent)
-        self.token_set = None
+        self._token_set = None
+
+    def checkLParen(self, node, left_brace_sameline=None):
+        ##print 'checkLParen(self,', left_paren, ',', left_brace_sameline, ')'
+        if left_brace_sameline is None:
+            left_brace_sameline = self.indentation_check.config.brace_sameline
+        if node is None:
+            return  # No parenthesis, no error.
+        ##print self, self.level
+        if self.node.location.line == node.location.line:
+            if not left_brace_sameline:
+                self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
+                                                     node.location.line, node.location.column,
+                                                     'Left brace not allowed on same line as definition.'))
+                return  # Return after logging error.
+            else:
+                return  # OK, is allowed, everything's swell.
+        else:
+            if left_brace_sameline:
+                self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
+                                                     node.location.line, node.location.column,
+                                                     'Left brace must be on same line as definition.'))
+                return  # Return after logging error.
+            else:
+                if self.level.accept(self.expandedTabsColumnNo(left_paren)):
+                    return  # Parenthesis on correct column.
+        self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
+                                             node.location.line, node.location.column,
+                                             'Invalid column for left brace.'))
+
+    def checkRParen(self, node_left, node_right):
+        if node_right is None:
+            assert node_right is None
+            return  # No parenthsis, no error.
+        if not self.level.accept(self.expandedTabsColumnNo(node_right)):
+            self.violations.add(lv.RuleViolation('indentation.brace', node_right.location.file.name,
+                                                 node_right.location.line, node_right.location.column,
+                                                 'Invalid column for right brace.'))
 
     def getLParen(self):
+        tk = ci.TokenKind
         token_set = self._getTokenSet()
+        for t in token_set:
+            if t.kind == tk.PUNCTUATION or t.spelling == '{':
+                return t
+        return None
 
     def getRParen(self):
-        pass
-
-    def checkLParen(self, lparen):
-        pass
-
-    def checkRParen(self, lparen, rparen):
-        pass
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        for t in reversed(token_set):
+            if t.kind == tk.PUNCTUATION or t.spelling == '}':
+                return t
+        return None
 
     def _getTokenSet(self):
-        if self.token_set:
-            return self.token_set
+        if self._token_set:
+            return self._token_set
         extent = self.node.extent
         translation_unit = self.node.translation_unit
-        self.token_set = ci.tokenize(translation_unit, extent)
-        for t in self.token_set.tokens:
-            print t.kind
-            #import pdb; pdb.set_trace()
-            print ' ', t.spelling
+        self._token_set = ci.tokenize(translation_unit, extent)
+        return self._token_set
         
     def checkIndentation(self):
         # Check left and right parenthesis.
         self.checkLParen(self.getLParen())
         self.checkRParen(self.getLParen(), self.getRParen())
-
-
-class NamespaceHandler(BlockParenHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(NamespaceHandler, self).__init__(indentation_check, handler_name, node, parent)
-
-    def checkIndentation(self):
-        # Check that the line with the namespace name starts at the correct
-        # indentation.
-
-        # Call the generic block handler.
-        super(NamespaceHandler, self).checkIndentation()
 
 
 class RootHandler(IndentSyntaxNodeHandler):
@@ -197,27 +230,105 @@ class RootHandler(IndentSyntaxNodeHandler):
         pass  # Nothing to check.
 
     def suggestedChildLevel(self, child):
-        return IndentLevel(level=0)
+        return IndentLevel(indent=0)
 
-    def getLevelImpl(self):
-        return IndentLevel(level=0)
+    def _getLevelImpl(self):
+        return IndentLevel(indent=0)
+
+
+class TranslationUnitHandler(IndentSyntaxNodeHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        pass
+
+
+class NamespaceHandler(BlockParenHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkLParen(self, left_paren):
+        return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_namespace)
+
+    def checkIndentation(self):
+        # Check that the line with the namespace name starts at the correct
+        # indentation.
+
+        # Call the generic block handler.
+        super(NamespaceHandler, self).checkIndentation()
+
+
+class FunctionDeclHandler(IndentSyntaxNodeHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        pass
+
+
+class CompoundStmtHandler(IndentSyntaxNodeHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        pass
+
+
+class ReturnStmtHandler(IndentSyntaxNodeHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        pass
 
 
 def getHandler(indentation_check, node, parent):
+    ##print 'getHandler()', indentation_check, node, parent
     ck = ci.CursorKind
     HANDLERS = {
+        ck.TRANSLATION_UNIT: TranslationUnitHandler(indentation_check, 'namespace', node, parent),
+        ck.COMPOUND_STMT: CompoundStmtHandler(indentation_check, 'compound stmt', node, parent),
+        ck.RETURN_STMT: ReturnStmtHandler(indentation_check, 'compound stmt', node, parent),
         ck.NAMESPACE: NamespaceHandler(indentation_check, 'namespace', node, parent),
+        ck.FUNCTION_DECL: FunctionDeclHandler(indentation_check, 'function_decl', node, parent),
         }
-    return HANDLERS.get(node.kind, None)
+    res = HANDLERS.get(node.kind, None)
+    ##print ' -->', res
+    return res
+
+
+class IndentationConfig(object):
+    def __init__(self, indent_width=4, tab_width=4, brace_adjustment=None,
+                 case_indent=None, brace_sameline=False, brace_sameline_class=None,
+                 brace_sameline_fun=None, brace_sameline_infun=None, brace_sameline_namespace=None):
+        self.indent_width = indent_width
+        self.tab_width = tab_width
+        self.brace_adjustment = brace_adjustment or indent_width
+        self.case_indent = case_indent or indent_width
+        self.brace_sameline = brace_sameline
+        if brace_sameline_class is None:
+            self.brace_sameline_class = brace_sameline
+        else:
+            self.brace_sameline_class = brace_sameline_class
+        if brace_sameline_fun is None:
+            self.brace_sameline_fun = brace_sameline
+        else:
+            self.brace_sameline_fun = brace_sameline_fun
+        if brace_sameline_infun is None:
+            self.brace_sameline_infun = brace_sameline
+        else:
+            self.brace_sameline_infun = brace_sameline_infun
+        if brace_sameline_namespace is None:
+            self.brace_sameline_namespace = brace_sameline
+        else:
+            self.brace_sameline_namespace = brace_sameline_namespace
 
 
 class IndentationCheck(TreeCheck):
-    def __init__(self, indent_width=4, tab_width=None):
+    def __init__(self, config=IndentationConfig()):
         super(IndentationCheck, self).__init__()
-        self.indent_width = indent_width
-        self.tab_width = tab_width or indent_width
-        self.brace_adjustment = indent_width
-        self.case_indent = indent_width
+        self.config = config
         self.handlers = []
         self.level = 0
 

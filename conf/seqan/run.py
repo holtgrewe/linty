@@ -11,8 +11,10 @@ import linty.indent as li
 
 BASE_PATH = os.path.dirname(__file__)
 
+INDENT_CONFIG = li.IndentationConfig(brace_sameline_namespace=True)
+
 AST_CHECKS = [
-    li.IndentationCheck()
+    li.IndentationCheck(INDENT_CONFIG)
     ]
 
 FILE_CHECKS = [

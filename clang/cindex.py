@@ -1919,35 +1919,31 @@ class TokenImpl(Structure):
     The TokenImpl class reprents an entry in a CXToken array (of type
     CXToken *).
     """
-    _fields_ = [("int_data", c_int * 4), ("ptr_data", c_void_p)]
+    _fields_ = [("int_data", c_uint * 4), ("ptr_data", c_void_p)]
 
-    @property
     def kind(self):
         """Return the TokenKind of the token."""
         if not hasattr(self, '_kind'):
             self._kind = Token_kind(self)
         return self._kind
 
-    @property
-    def spelling(self):
+    def spelling(self, translation_unit):
         """Return the spelling of the token."""
         #import pdb; pdb.set_trace()
         if not hasattr(self, '_spelling'):
-            self._spelling = Token_spelling(self)
+            self._spelling = Token_spelling(translation_unit, self)
         return self._spelling
 
-    @property
-    def location(self):
+    def location(self, translation_unit):
         """Return the location of the token."""
         if not hasattr(self, '_location'):
-            self._location = Token_location(self)
+            self._location = Token_location(translation_unit, self)
         return self._location
 
-    @property
-    def extent(self):
+    def extent(self, translation_unit):
         """Return the extent of the token."""
         if not hasattr(self, '_extent'):
-            self._extent = Token_extent(self)
+            self._extent = Token_extent(translation_unit, self)
         return self._extent
 
 
@@ -1963,28 +1959,26 @@ class Token(object):
     Tokens have been released.
     """
 
-    def __init__(self, token_impl, collection):
+    def __init__(self, translation_unit, token_impl, collection):
+        self.translation_unit = translation_unit
         self.token_impl = token_impl
         self.collection = collection
 
-    def from_param(self):
-        return self._as_parameter_
-
     @property
     def kind(self):
-        return self.token_impl.kind
+        return self.token_impl.kind()
 
     @property
     def spelling(self):
-        return self.token_impl.spelling
+        return self.token_impl.spelling(self.translation_unit)
 
     @property
     def location(self):
-        return self.token_impl.location
+        return self.token_impl.location(self.translation_unit)
 
     @property
     def extent(self):
-        return self.token_impl.extent
+        return self.token_impl.extent(self.translation_unit)
 
 
 class TokenCollection(object):
@@ -1998,12 +1992,21 @@ class TokenCollection(object):
         self.source_range = source_range
         self._token_arr = token_arr
         self._num_tokens = num_tokens
-        self.tokens = tuple(Token(self._token_arr[i], self) for i in range(self._num_tokens.value))
+        self.tokens = tuple(Token(self.translation_unit, self._token_arr[i], self) for i in range(self._num_tokens.value))
         self.cursors = None
 
     def annotate(self):
         self.cursors = (Cursor * self._num_tokens)()
         _clang_annotateTokens(self.translation_unit, self._token_arr, self._num_tokens, self._cursors)
+
+    def __iter__(self):
+        return iter(self.tokens)
+
+    def __getitem__(self, i):
+        return self.tokens[i]
+
+    def __len__(self):
+        return len(self.tokens)
 
     def __del__(self):
         _clang_disposeTokens(self.translation_unit, self._token_arr, self._num_tokens)
@@ -2024,16 +2027,16 @@ Token_kind.argtypes = [TokenImpl]
 Token_kind.restype = TokenKind
 
 Token_spelling = lib.clang_getTokenSpelling
-Token_spelling.argtypes = [TokenImpl]
+Token_spelling.argtypes = [TranslationUnit, TokenImpl]
 Token_spelling.restype = _CXString
 Token_spelling.errcheck = _CXString.from_result
 
 Token_location = lib.clang_getTokenLocation
-Token_location.argtypes = [TokenImpl]
+Token_location.argtypes = [TranslationUnit, TokenImpl]
 Token_location.restype = SourceLocation
 
 Token_extent = lib.clang_getTokenExtent
-Token_extent.argtypes = [TokenImpl]
+Token_extent.argtypes = [TranslationUnit, TokenImpl]
 Token_extent.restype = SourceRange
 
 _clang_disposeTokens = lib.clang_disposeTokens

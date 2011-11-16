@@ -37,6 +37,11 @@
 namespace foo {
 }  // namespace bar
 
+
+namespace foo
+{
+  }  // namespace bar
+
 int main()
 {
     return 0;
