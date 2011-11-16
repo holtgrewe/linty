@@ -45,14 +45,14 @@ class IndentLevel(object):
             self.levels.add(indent)
         else:
             assert (base is not None) and (offset is not None)
-            for l in base.indent_levels:
-                levels.add(l + offset)
+            for l in base.levels:
+                self.levels.add(l + offset)
     
     def isMultilevel(self):
-        return len(levels) > 1
+        return len(self.levels) > 1
 
     def accept(self, indent):
-        ##print 'accept(), level=', self.levels, 'indent=', indent
+        print type(self), 'accept(), level=', self.levels, 'indent=', indent
         return indent in self.levels
 
     def gt(self, indent):
@@ -155,6 +155,12 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
         super(BlockParenHandler, self).__init__(indentation_check, handler_name, node, parent)
         self._token_set = None
 
+    def suggestedChildLevel(self, child):
+        return IndentLevel(base=self.level, offset=1)
+
+    def suggestedChildLevel(self, indent_syntax_node_handler):
+        return self.level
+
     def checkLParen(self, node, left_brace_sameline=None):
         ##print 'checkLParen(self,', left_paren, ',', left_brace_sameline, ')'
         if left_brace_sameline is None:
@@ -217,6 +223,13 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
         return self._token_set
         
     def checkIndentation(self):
+        # Check indentation of current line start.
+        token_set = self._getTokenSet()
+        first_token = token_set[0]
+        if not self.level.accept(self.expandedTabsColumnNo(first_token)):
+            self.violations.add(lv.RuleViolation('indentation', first_token.location.file.name,
+                                                 first_token.location.line, first_token.location.column,
+                                                 'Invalid indentation!'))
         # Check left and right parenthesis.
         self.checkLParen(self.getLParen())
         self.checkRParen(self.getLParen(), self.getRParen())
@@ -229,14 +242,11 @@ class RootHandler(IndentSyntaxNodeHandler):
     def checkIndentation(self):
         pass  # Nothing to check.
 
-    def suggestedChildLevel(self, child):
-        return IndentLevel(indent=0)
-
     def _getLevelImpl(self):
         return IndentLevel(indent=0)
 
 
-class TranslationUnitHandler(IndentSyntaxNodeHandler):
+class NullHandler(IndentSyntaxNodeHandler):
     def __init__(self, indentation_check, handler_name, node, parent):
         super(type(self), self).__init__(indentation_check, handler_name, node, parent)
 
@@ -251,12 +261,18 @@ class NamespaceHandler(BlockParenHandler):
     def checkLParen(self, left_paren):
         return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_namespace)
 
-    def checkIndentation(self):
-        # Check that the line with the namespace name starts at the correct
-        # indentation.
 
-        # Call the generic block handler.
-        super(NamespaceHandler, self).checkIndentation()
+class ClassDeclHandler(IndentSyntaxNodeHandler):
+    """Indentation syntax node handler for classes/structs."""
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        pass
+
+    def checkLParen(self, left_paren):
+        return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_class)
+
 
 
 class FunctionDeclHandler(IndentSyntaxNodeHandler):
@@ -287,13 +303,84 @@ def getHandler(indentation_check, node, parent):
     ##print 'getHandler()', indentation_check, node, parent
     ck = ci.CursorKind
     HANDLERS = {
-        ck.TRANSLATION_UNIT: TranslationUnitHandler(indentation_check, 'namespace', node, parent),
-        ck.COMPOUND_STMT: CompoundStmtHandler(indentation_check, 'compound stmt', node, parent),
-        ck.RETURN_STMT: ReturnStmtHandler(indentation_check, 'compound stmt', node, parent),
+        ck.STRUCT_DECL: ClassDeclHandler(indentation_check, 'struct', node, parent),
+        ck.UNION_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CLASS_DECL: ClassDeclHandler(indentation_check, 'class', node, parent),
+        ck.ENUM_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.FUNCTION_DECL: FunctionDeclHandler(indentation_check, 'function', node, parent),
+        ck.VAR_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.PARM_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.TYPEDEF_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_METHOD: NullHandler(indentation_check, '<null>', node, parent),
         ck.NAMESPACE: NamespaceHandler(indentation_check, 'namespace', node, parent),
-        ck.FUNCTION_DECL: FunctionDeclHandler(indentation_check, 'function_decl', node, parent),
+        ck.LINKAGE_SPEC: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CONSTRUCTOR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.DESTRUCTOR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CONVERSION_FUNCTION: NullHandler(indentation_check, '<null>', node, parent),
+        ck.TEMPLATE_TYPE_PARAMETER: NullHandler(indentation_check, '<null>', node, parent),
+        ck.TEMPLATE_NON_TYPE_PARAMETER: NullHandler(indentation_check, '<null>', node, parent),
+        ck.FUNCTION_TEMPLATE: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CLASS_TEMPLATE: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION: NullHandler(indentation_check, '<null>', node, parent),
+        ck.NAMESPACE_ALIAS: NullHandler(indentation_check, '<null>', node, parent),
+        ck.USING_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
+        ck.TYPE_ALIAS_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_ACCESS_SPEC_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CALL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.BLOCK_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.STRING_LITERAL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CHARACTER_LITERAL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.PAREN_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.UNARY_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.ARRAY_SUBSCRIPT_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.BINARY_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.COMPOUND_ASSIGNMENT_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.INIT_LIST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.ADDR_LABEL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.StmtExpr: NullHandler(indentation_check, '<null>', node, parent),
+        ck.GENERIC_SELECTION_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_STATIC_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_DYNAMIC_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_REINTERPRET_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_CONST_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_FUNCTIONAL_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_TYPEID_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_BOOL_LITERAL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_NULL_PTR_LITERAL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_THIS_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_THROW_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_NEW_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_DELETE_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_UNARY_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.PACK_EXPANSION_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.SIZE_OF_PACK_EXPR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.LABEL_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.COMPOUND_STMT: CompoundStmtHandler(indentation_check, 'compound stmt', node, parent),
+        ck.CASE_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.DEFAULT_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.IF_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.SWITCH_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.WHILE_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.DO_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.FOR_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.GOTO_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.INDIRECT_GOTO_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CONTINUE_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.BREAK_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.RETURN_STMT: ReturnStmtHandler(indentation_check, '<null>', node, parent),
+        ck.ASM_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_CATCH_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_TRY_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.CXX_FOR_RANGE_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.NULL_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.DECL_STMT: NullHandler(indentation_check, '<null>', node, parent),
+        ck.UNEXPOSED_ATTR: NullHandler(indentation_check, '<null>', node, parent),
+        ck.PREPROCESSING_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
+        ck.MACRO_DEFINITION: NullHandler(indentation_check, '<null>', node, parent),
+        ck.MACRO_INSTANTIATION: NullHandler(indentation_check, '<null>', node, parent),
+        ck.INCLUSION_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
         }
-    res = HANDLERS.get(node.kind, None)
+    res = HANDLERS.get(node.kind, NullHandler(indentation_check, '<null>', node, parent))
     ##print ' -->', res
     return res
 

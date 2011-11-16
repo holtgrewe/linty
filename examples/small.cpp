@@ -42,6 +42,23 @@ namespace foo
 {
   }  // namespace bar
 
+class MyClass
+{
+public:
+    int foo;
+    int bar;
+
+    MyClass() : foo(0), bar(0) {}
+
+    MyClass(int i) : foo(i), bar(0)
+    {}
+
+    MyClass(int i, int j) :
+        foo(i), bar(j)
+
+    ~MyClass() {}
+};
+
 int main()
 {
     return 0;
