@@ -1892,6 +1892,9 @@ class TokenKind(object):
     def __eq__(self, other):
         return self.value == other.value
 
+    def __ne__(self, other):
+        return self.value != other.value
+
     def __hash__(self):
         return self.value
 

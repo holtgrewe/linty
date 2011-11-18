@@ -8,13 +8,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import linty.app as la
 import linty.checks as lc
 import linty.indent as li
+import linty.whitespace as lw
 
 BASE_PATH = os.path.dirname(__file__)
 
 INDENT_CONFIG = li.IndentationConfig(brace_sameline_namespace=True)
 
+WHITESPACE_CONFIG = lw.WhitespaceConfig()
+
 AST_CHECKS = [
-    li.IndentationCheck(INDENT_CONFIG)
+    li.IndentationCheck(INDENT_CONFIG),
+    lw.WhitespaceCheck(WHITESPACE_CONFIG),
     ]
 
 FILE_CHECKS = [

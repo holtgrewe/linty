@@ -34,12 +34,24 @@
 
 #include "test.h"
 
-namespace foo {
+namespace foo  {
 }  // namespace bar
 
 
-namespace foo
+namespace foo {
+}  // namespace barXX
+
+
+namespace foo {
+} // namespace bar
+
+
+namespace  foo
 {
+  }  // namespace bar
+
+namespace
+foo {
   }  // namespace bar
 
 class MyClass

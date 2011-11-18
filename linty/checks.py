@@ -215,3 +215,17 @@ class TodoCommentChecker(Check):
                         v = lv.RuleViolation('whitespace.todo', path, cstart.line, cstart.column,
                                              '"TODO (username):" should be followed by a space.')
                         self.violations.add(v)
+
+
+class TreeCheck(Check):
+    def beginTree(self, node):
+        logging.debug('Starting tree %s', node.spelling)
+
+    def endTree(self, node):
+        logging.debug('Ending tree %s', node.spelling)
+
+    def enterNode(self, node):
+        logging.debug('Entering %s', node.spelling)
+
+    def exitNode(self, node):
+        logging.debug('Leaving %s', node.spelling)

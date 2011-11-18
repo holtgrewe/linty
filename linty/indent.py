@@ -23,20 +23,6 @@ def lengthExpandedTabs(s, to_idx, tab_width):
     return l
 
 
-class TreeCheck(lc.Check):
-    def beginTree(self, node):
-        logging.debug('Starting tree %s', node.spelling)
-
-    def endTree(self, node):
-        logging.debug('Ending tree %s', node.spelling)
-
-    def enterNode(self, node):
-        logging.debug('Entering %s', node.spelling)
-
-    def exitNode(self, node):
-        logging.debug('Leaving %s', node.spelling)
-
-
 class IndentLevel(object):
     def __init__(self, indent=None, base=None, offset=None):
         assert (indent is not None) or (base is not None) or (offset is not None)
@@ -412,7 +398,7 @@ class IndentationConfig(object):
             self.brace_sameline_namespace = brace_sameline_namespace
 
 
-class IndentationCheck(TreeCheck):
+class IndentationCheck(lc.TreeCheck):
     def __init__(self, config=IndentationConfig()):
         super(IndentationCheck, self).__init__()
         self.config = config
