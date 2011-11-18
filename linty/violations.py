@@ -11,6 +11,20 @@ import sys
 import app
 
 
+class LogViolationsMixin(object):
+    """Mixin that adds logViolation() method.
+
+    The including object must have a member violations that is a list.
+    Violations will be logged as RuleViolation objects.
+    """
+
+    def logViolation(self, rule_id, node, msg):
+        v = RuleViolation(rule_id, node.location.file.name,
+                          node.location.line, node.location.column,
+                          msg)
+        self.violations.add(v)
+
+
 class RuleViolation(object):
     def __init__(self, rule_id, file, line, column, msg):
         self.rule_id = rule_id

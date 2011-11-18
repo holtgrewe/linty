@@ -46,6 +46,10 @@ namespace foo {
 } // namespace bar
 
 
+namespace foo {
+}
+
+
 namespace  foo
 {
   }  // namespace bar

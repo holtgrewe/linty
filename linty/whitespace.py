@@ -14,7 +14,7 @@ class WhitespaceConfig(object):
     pass
 
 
-class WhitespaceNodeHandler(object):
+class WhitespaceNodeHandler(lv.LogViolationsMixin):
     def __init__(self, whitespace_check, handler_name, node, parent):
         self.whitespace_check = whitespace_check
         self.handler_name = handler_name
@@ -49,88 +49,74 @@ class RootHandler(WhitespaceNodeHandler):
 class NamespaceHandler(WhitespaceNodeHandler):
     def checkWhitespace(self):
         tokens = self._getTokenSet()
-        for t in tokens:
-            print t.spelling, t.kind, t.location.line, t.location.column
         tk = ci.TokenKind
         # Get parenthesis tokens.
         # TODO(holtgrew): Compress this a bit.
         lparen = self.getLParen()
         if not lparen:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[0].location.file.name,
-                                                 tokens[0].location.line, tokens[0].location.column,
-                                                 'Could not find opening brace for namespace.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Could not find opening brace for namespace.')
             return
         rparen = self.getRParen()
         if not rparen:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[-1].location.file.name,
-                                                 tokens[-1].location.line, tokens[-1].location.column,
-                                                 'Could not find closing brace for namespace.'))
+            self.logViolation('spacing.namespace', tokens[-1],
+                              'Could not find closing brace for namespace.')
             return
         # Get namespace keyword token.
         keyword = tokens[0]
         if keyword.kind != tk.KEYWORD or keyword.spelling != 'namespace':
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[0].location.file.name,
-                                                 tokens[0].location.line, tokens[0].location.column,
-                                                 'First token for namespace construct must be keyword "namespace".'))
+            self.logViolation('spacing.namespace', tokens[-1],
+                              'First token for namespace construct must be keyword "namespace".')
             return
         identifier = tokens[1]
         if identifier.kind != tk.IDENTIFIER:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[0].location.file.name,
-                                                 tokens[0].location.line, tokens[0].location.column,
-                                                 'Second token for namespace construct must be identifier.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Second token for namespace construct must be identifier.')
             return
         if tokens[2] != lparen:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[0].location.file.name,
-                                                 tokens[0].location.line, tokens[0].location.column,
-                                                 'Third token for namespace must be opening brace.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Third token for namespace must be opening brace.')
             return
         if tokens[-2] != rparen:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[-1].location.file.name,
-                                                 tokens[-1].location.line, tokens[-1].location.column,
-                                                 'Second last token for namespace must be right brace.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Second last token for namespace must be right brace.')
             return
         comment = tokens[-1]
         if comment.kind != tk.COMMENT:
-            self.violations.add(lv.RuleViolation('spacing.namespace', tokens[-1].location.file.name,
-                                                 tokens[-1].location.line, tokens[-1].location.column,
-                                                 'Last token for namespace must be "// namespace <namespace id>" comment.'))
+            self.logViolation('spacing.namespace', tokens[-1],
+                              'Last token for namespace must be "// namespace <namespace id>" comment.')
             return
         # --------------------------------------------------------------------
         # Check rules for the namespace construct
         # --------------------------------------------------------------------
         # Exactly one space between namespace and identifier.
         if keyword.extent.end.line != identifier.extent.end.line:  # On the same line.
-            self.violations.add(lv.RuleViolation('spacing.namespace', keyword.location.file.name,
-                                                 keyword.location.line, keyword.location.column,
-                                                 'Keyword "namespace" must be on same line as identifier.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Keyword "namespace" must be on same line as identifier.')
             return
         if keyword.extent.end.column + 1 != identifier.extent.start.column:  # One space.
-            self.violations.add(lv.RuleViolation('spacing.namespace', keyword.location.file.name,
-                                                 keyword.location.line, keyword.location.column,
-                                                 'There must be exactly on space between keyword "namespace" and identifier.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'There must be exactly on space between keyword "namespace" and identifier.')
             return
         # Exactly one space between identifier and opening bracket.
         if identifier.extent.end.column + 1 != lparen.extent.start.column:  # One space.
-            self.violations.add(lv.RuleViolation('spacing.namespace', identifier.location.file.name,
-                                                 identifier.location.line, identifier.location.column,
-                                                 'There must be exactly on space between namespace identifier and opening brace.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'There must be exactly on space between namespace identifier and opening brace.')
             return
         # Exactly two spaces between closing brace and comment
         if rparen.extent.end.line != comment.extent.end.line:  # On the same line.
-            self.violations.add(lv.RuleViolation('spacing.namespace', rparen.location.file.name,
-                                                 rparen.location.line, rparen.location.column,
-                                                 'Right parenthesis and comment must be on same line.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'Right parenthesis and comment must be on same line.')
             return
         if rparen.extent.end.column + 2 != comment.extent.start.column:  # Two spaces.
-            self.violations.add(lv.RuleViolation('spacing.namespace', rparen.location.file.name,
-                                                 rparen.location.line, rparen.location.column,
-                                                 'There must be exactly two spaces between right parenthesis and comment.'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'There must be exactly two spaces between right parenthesis and comment.')
             return
         # Comment must be "// namespace <namespace name>"
         if comment.spelling != '// namespace %s' % identifier.spelling:
-            self.violations.add(lv.RuleViolation('spacing.namespace', rparen.location.file.name,
-                                                 rparen.location.line, rparen.location.column,
-                                                 'The closing comment must be "// namespace <identifier>".'))
+            self.logViolation('spacing.namespace', tokens[0],
+                              'The closing comment must be "// namespace <identifier>".')
+            return
             
 
     def getLParen(self):  # TODO(holtgrew): Dupe!
