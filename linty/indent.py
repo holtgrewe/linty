@@ -63,6 +63,7 @@ class IndentSyntaxNodeHandler(object):
         self.parent = parent
         self.level = self._getLevelImpl()
         self.violations = indentation_check.violations
+        self._token_set = None
 
     def _getLevelImpl(self):
         res = self.parent.suggestedChildLevel(self)
@@ -135,11 +136,18 @@ class IndentSyntaxNodeHandler(object):
         return lengthExpandedTabs(line, node.location.column - 1, self.indentation_check.config.tab_width)
         ##print >>sys.stderr, 'LINE:', line
 
+    def _getTokenSet(self):
+        if self._token_set:
+            return self._token_set
+        extent = self.node.extent
+        translation_unit = self.node.translation_unit
+        self._token_set = ci.tokenize(translation_unit, extent)
+        return self._token_set
+
 
 class BlockParenHandler(IndentSyntaxNodeHandler):
     def __init__(self, indentation_check, handler_name, node, parent):
         super(BlockParenHandler, self).__init__(indentation_check, handler_name, node, parent)
-        self._token_set = None
 
     def suggestedChildLevel(self, child):
         return IndentLevel(base=self.level, offset=1)
@@ -200,14 +208,6 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
                 return t
         return None
 
-    def _getTokenSet(self):
-        if self._token_set:
-            return self._token_set
-        extent = self.node.extent
-        translation_unit = self.node.translation_unit
-        self._token_set = ci.tokenize(translation_unit, extent)
-        return self._token_set
-        
     def checkIndentation(self):
         # Check indentation of current line start.
         token_set = self._getTokenSet()
@@ -262,11 +262,18 @@ class ClassDeclHandler(IndentSyntaxNodeHandler):
 
 
 class FunctionDeclHandler(IndentSyntaxNodeHandler):
+    # Rules to enforce
+    #
+    # - parameters on one line or if there: indented by one level or flush with opening bracket
+    # - brace must not be on same level as function itself
+    # - indentation for compound statement same as function, handles rest on its own
     def __init__(self, indentation_check, handler_name, node, parent):
         super(type(self), self).__init__(indentation_check, handler_name, node, parent)
 
     def checkIndentation(self):
-        pass
+        tokens = self._getTokenSet()
+        for t in tokens:
+            print t.spelling
 
 
 class CompoundStmtHandler(IndentSyntaxNodeHandler):
@@ -416,7 +423,7 @@ class IndentationCheck(lc.TreeCheck):
         self.handlers = []
 
     def enterNode(self, node):
-        logging.info('%sNode: %s %s (%s)', ' ' * self.level, node.kind, node.spelling, node.location)
+        ##logging.info('%sNode: %s %s (%s)', ' ' * self.level, node.kind, node.spelling, node.location)
         handler = getHandler(self, node, self.handlers[-1])
         self.handlers.append(handler)
         if handler:

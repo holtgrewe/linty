@@ -39,6 +39,7 @@ class NullHandler(WhitespaceNodeHandler):
     def checkWhitespace(self):
         pass  # Do nothing.
 
+
 class RootHandler(WhitespaceNodeHandler):
     def __init__(self, whitespace_check):
         super(type(self), self).__init__(whitespace_check, None, None, None)
@@ -46,12 +47,15 @@ class RootHandler(WhitespaceNodeHandler):
     def checkWhitespace(self):
         pass  # Do nothing.
 
+
 class NamespaceHandler(WhitespaceNodeHandler):
     def checkWhitespace(self):
         tokens = self._getTokenSet()
         tk = ci.TokenKind
+        # --------------------------------------------------------------------
+        # Get tokens and log violation on errors.
+        # --------------------------------------------------------------------
         # Get parenthesis tokens.
-        # TODO(holtgrew): Compress this a bit.
         lparen = self.getLParen()
         if not lparen:
             self.logViolation('spacing.namespace', tokens[0],
@@ -117,7 +121,6 @@ class NamespaceHandler(WhitespaceNodeHandler):
             self.logViolation('spacing.namespace', tokens[0],
                               'The closing comment must be "// namespace <identifier>".')
             return
-            
 
     def getLParen(self):  # TODO(holtgrew): Dupe!
         tk = ci.TokenKind
