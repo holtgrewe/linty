@@ -5,8 +5,8 @@
 import logging
 import sys
 
-import linty.violations as lv
-import linty.checks as lc
+import violations as lv
+import checks as lc
 
 import clang.cindex as ci
 

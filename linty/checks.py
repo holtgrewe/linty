@@ -13,7 +13,7 @@ import bisect
 import sys
 import re
 
-import linty.violations as lv
+import violations as lv
 
 
 class Check(object):

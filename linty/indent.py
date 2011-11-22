@@ -8,8 +8,8 @@ __author__ = 'Manuel Holtgrewe <manuel.holtgrewe@fu-berlin.de>'
 import logging
 import sys
 
-import linty.violations as lv
-import linty.checks as lc
+import violations as lv
+import checks as lc
 
 import clang.cindex as ci
 
@@ -186,7 +186,9 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
     def checkRParen(self, node_left, node_right):
         if node_right is None:
             assert node_right is None
+            logging.debug('no rparen')
             return  # No parenthsis, no error.
+        logging.debug('level %s', self.level)
         if not self.level.accept(self.expandedTabsColumnNo(node_right)):
             self.violations.add(lv.RuleViolation('indentation.brace', node_right.location.file.name,
                                                  node_right.location.line, node_right.location.column,

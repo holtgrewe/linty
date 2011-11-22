@@ -8,7 +8,7 @@ import os
 import os.path
 import sys
 
-import app
+import app as app
 
 
 class LogViolationsMixin(object):

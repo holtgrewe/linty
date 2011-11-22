@@ -9,7 +9,7 @@ import os.path
 
 import clang.cindex as ci
 
-import linty.violations as lv
+import violations as lv
 
 
 class AuditEvent(object):
@@ -181,6 +181,7 @@ class Checker(object):
     def process(self, files):
         """Process all given files and return the error count."""
         # Startup.
+        #print 'Processing files %s' % files
         self._fireAuditStarted()
         for check in self.ast_checks + self.file_checks:
             check.setFileReader(self.file_reader)
@@ -210,7 +211,7 @@ class Checker(object):
         vs = set()
         for check in self.ast_checks + self.file_checks:
             vs.update(check.violations)
-        print 'VIOLATIONS'
+        logging.info('VIOLATIONS')
         printer = lv.ViolationPrinter(self.file_reader, self.options.ignore_nolint, self.options.show_source, self.options.ignore_rules)
         printer.show(vs)
         return int(len(vs) > 0)
