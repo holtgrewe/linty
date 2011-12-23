@@ -14,7 +14,7 @@ class Data(object):
 
 
 def checkTUStr(cppStr, ast_check=None, file_check=None):
-    """Run check on the C++ program given as the string cPPStr.
+    """Run check on the C++ program given as the string cppStr.
 
     Returns a set with the violations.
     """

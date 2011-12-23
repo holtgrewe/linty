@@ -38,7 +38,7 @@ class IndentLevel(object):
         return len(self.levels) > 1
 
     def accept(self, indent):
-        print type(self), 'accept(), level=', self.levels, 'indent=', indent
+        ##print type(self), 'accept(), level=', self.levels, 'indent=', indent
         return indent in self.levels
 
     def gt(self, indent):
@@ -156,7 +156,7 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
         return self.level
 
     def checkLParen(self, node, left_brace_sameline=None):
-        ##print 'checkLParen(self,', left_paren, ',', left_brace_sameline, ')'
+        ##print 'XXX', __file__, self, 'checkLParen()'
         if left_brace_sameline is None:
             left_brace_sameline = self.indentation_check.config.brace_sameline
         if node is None:
@@ -184,6 +184,7 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
                                              'Invalid column for left brace.'))
 
     def checkRParen(self, node_left, node_right):
+        ##print 'XXX', __file__, self, 'checkRParen()'
         if node_right is None:
             assert node_right is None
             logging.debug('no rparen')
@@ -212,7 +213,9 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
 
     def checkIndentation(self):
         # Check indentation of current line start.
+        ##print 'Checking indentation:', self
         token_set = self._getTokenSet()
+        ##print '  token set:', token_set
         first_token = token_set[0]
         if not self.level.accept(self.expandedTabsColumnNo(first_token)):
             self.violations.add(lv.RuleViolation('indentation', first_token.location.file.name,
@@ -246,8 +249,13 @@ class NamespaceHandler(BlockParenHandler):
     def __init__(self, indentation_check, handler_name, node, parent):
         super(type(self), self).__init__(indentation_check, handler_name, node, parent)
 
-    def checkLParen(self, left_paren):
-        return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_namespace)
+    def checkLParen(self, node):
+        ##print 'XXX', __file__, self, 'checkLParen()'
+        if self.node.location.line != node.location.line:
+            self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
+                                                 node.location.line, node.location.column,
+                                                 'Left brace must be on the same line as the namespace keyword.'))
+            return  # Return after logging error.
 
 
 class ClassDeclHandler(IndentSyntaxNodeHandler):
