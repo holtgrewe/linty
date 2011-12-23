@@ -9,7 +9,7 @@ import logging
 import optparse
 import sys
 
-import linty.main as lm
+import main as lm
 
 def createDefaultConfig():
     return [], []
