@@ -85,6 +85,18 @@ class IndentSyntaxNodeHandler(object):
     def areOnSameLine(self, node1, node2):
         return node1 and node2 and node1.location.line == node2.location.line
 
+    def areOnSameColumn(self, node1, node2):
+        return node1 and node2 and node1.extent.start.column == node2.extent.start.column
+
+    def areAdjacent(self, node1, node2):
+        if node1.location.file.name != node2.location.file.name:
+            return False
+        if node1.extent.end.line != node2.extent.start.line:
+            return False
+        if node1.extent.end.column != node2.extent.start.column:
+            return False
+        return True
+
     def getFirstToken(self, node):
         pass
 
@@ -152,9 +164,6 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
     def suggestedChildLevel(self, child):
         return IndentLevel(base=self.level, offset=1)
 
-    def suggestedChildLevel(self, indent_syntax_node_handler):
-        return self.level
-
     def checkLParen(self, node, left_brace_sameline=None):
         ##print 'XXX', __file__, self, 'checkLParen()'
         if left_brace_sameline is None:
@@ -196,14 +205,36 @@ class BlockParenHandler(IndentSyntaxNodeHandler):
                                                  'Invalid column for right brace.'))
 
     def getLParen(self):
+        """"Return the first opening brace."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         for t in token_set:
-            if t.kind == tk.PUNCTUATION or t.spelling == '{':
+            if t.kind == tk.PUNCTUATION and t.spelling == '{':
                 return t
         return None
 
+    def getLBracket(self):
+        """Return the first opening bracket."""
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        for t in token_set:
+            if t.kind == tk.PUNCTUATION and t.spelling == '(':
+                return t
+        return None
+
+    def getRBracket(self):
+        """Return the first closing bracket to the left of left brace."""
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        for i, t in enumerate(token_set):
+            if t.kind == tk.PUNCTUATION and t.spelling == '{':
+                for t2 in reversed(token_set[:i]):
+                    if t2.kind == tk.PUNCTUATION and t2.spelling == ')':
+                        return t2
+        return None
+
     def getRParen(self):
+        """Return the last closing brace."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         for t in reversed(token_set):
@@ -251,11 +282,38 @@ class NamespaceHandler(BlockParenHandler):
 
     def checkLParen(self, node):
         ##print 'XXX', __file__, self, 'checkLParen()'
+        if node is None:
+            # TODO(holtgrew): Do we need to log this? clang should not parse this even.
+            self.violations.add(lv.RuleViolation('indentation.brace', self.node.location.file.name,
+                                                 self.node.location.line, self.node.location.column,
+                                                 'Missing left brace.'))
+            return  # Return after logging error.
         if self.node.location.line != node.location.line:
             self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
                                                  node.location.line, node.location.column,
                                                  'Left brace must be on the same line as the namespace keyword.'))
             return  # Return after logging error.
+
+    def checkRParen(self, node_left, node_right):
+        ##print 'XXX', __file__, self, 'checkRParen()'
+        if node_right is None:
+            # TODO(holtgrew): Do we need to log this? clang should not parse this even.
+            self.violations.add(lv.RuleViolation('indentation.brace', self.node.location.file.name,
+                                                 self.node.location.line, self.node.location.column,
+                                                 'Missing right brace.'))
+            return  # Return after logging error.
+        logging.debug('level %s', self.level)
+        # The left brace must be on the same line or have the correct
+        # indentation: "namespace <identifier> {}"
+        if self.level.accept(self.expandedTabsColumnNo(node_right)):
+            return  # OK, return.
+        if (node_left.location.line == node_right.location.line and
+            node.left.location.column + 1 == node_right.location.column):
+            return  # OK, return
+        # Otherwise, log error.
+        self.violations.add(lv.RuleViolation('indentation.brace', node_right.location.file.name,
+                                             node_right.location.line, node_right.location.column,
+                                             'Invalid column for right brace.'))
 
 
 class ClassDeclHandler(IndentSyntaxNodeHandler):
@@ -270,21 +328,160 @@ class ClassDeclHandler(IndentSyntaxNodeHandler):
         return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_class)
 
 
+class VarDeclHandler(IndentSyntaxNodeHandler):
+    """Indentation syntax node handler for variable declarations."""
 
-class FunctionDeclHandler(IndentSyntaxNodeHandler):
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(VarDeclHandler, self).__init__(indentation_check, handler_name, node, parent)
+
+    def checkIndentation(self):
+        token_set = self._getTokenSet()
+        # Check for the correct indentation for the first token of the variable declaration.
+        first_token = token_set[0]
+        if not self.level.accept(self.expandedTabsColumnNo(first_token)):
+            logging.warning('%s' % (self.level))
+            self.violations.add(lv.RuleViolation('indentation', first_token.location.file.name,
+                                                 first_token.location.line, first_token.location.column,
+                                                 'Invalid indentation for variable declaration.'))
+        # TODO(holtgrew): Enforce further rules.
+
+
+class FunctionDeclHandler(BlockParenHandler):
+    # Basically, function declarations (as in libclang) consists of (1) an
+    # attribute specifier sequence, (2) a declaration specifier sequence, and
+    # (3) a declarator, and (4) a function body.
+    #
+    # I (holtgrewe) do not see how to get the complete set of information from
+    # the libclang API.  All you can get is a token list and get back the
+    # cursors for each token.
+    #
+    # Empirically, we can make the following dissection of the tokens:
+    #
+    # (1) Everything with token kind INVALID_FILE is the declaration specifier
+    # sequence, (2) everything up to but excluding the first identifier token
+    # with the same spelling as the FunctionDecl node is the return type, (3)
+    # that token is the function name, (4) everything up to the last closing
+    # parenthesis ")" before the body is the function argument list, and we can
+    # (5) get the function body directly.
+    #
     # Rules to enforce
     #
-    # - parameters on one line or if there: indented by one level or flush with opening bracket
-    # - brace must not be on same level as function itself
-    # - indentation for compound statement same as function, handles rest on its own
+    # - The declaration specifier sequence is flushed to the current indentation level.
+    # - The return type continues the same line as the declaration specifier sequence ends on.
+    # - The function name goes to its own line or on the same line as everything before if everything goes on one line.
+    # - The opening parameter parenthesis is adjacent to the function name.
+    # - The closing bracket is adjacent to the last parameter declaration.
+    # - The parameter declarations start either on their same line with one more level of indentation or start directly after the opening parenthesis.
+    # - The parameter list continues on the same column that it was opened on.
     def __init__(self, indentation_check, handler_name, node, parent):
         super(type(self), self).__init__(indentation_check, handler_name, node, parent)
 
-    def checkIndentation(self):
-        tokens = self._getTokenSet()
-        for t in tokens:
-            print t.spelling
+    def _getDissectedTokenSet(self):
+        """Get token set and dissection thereof.
 
+        The dissection is a list of integers with begin and end positions.  The
+        i-th entry contains the begin index of the i-th set, the (i+1)th entry
+        the end index.
+        """
+        ck = ci.CursorKind
+        tk = ci.TokenKind
+        ts = self._getTokenSet()
+        ts.annotate()
+        ds = []
+        splitters = [0, 0]
+        state = 'attribute-specifier'
+        ##for i, x in enumerate(ts):
+        ##    if ts.get_cursor(i) != ts.get_cursor(0):
+        ##        break  # We are beyond the function declaration.
+        ##    print 'i=', i, 'kind=', ts[i].kind, 'cursor kind=', ts.get_cursor(i).kind, ', spelling=', ts[i].spelling
+        print 'LEN(ts) ==', len(ts)
+        for i, x in enumerate(ts):
+            print ',--'
+            print '| state     ', state
+            print '| token     ', ts[i],            ts[i].extent,            ts[i].spelling
+            print '| token kind', ts[i].kind
+            print '| get cursor', ts.get_cursor(i), ts.get_cursor(i).extent, ts.get_cursor(i).spelling
+            print '| node      ', self.node,        self.node.extent,        self.node.spelling
+            print '`--'
+            if state != 'attribute-specifier' and ts.get_cursor(i) != self.node:
+                break  # We are beyond the function declaration.
+            print 'i=', i, ts.get_cursor(i).kind
+            if state == 'attribute-specifier':
+                if ts.get_cursor(i).kind == ck.INVALID_FILE:
+                    splitters[-1] += 1
+                    print 'splitters[-1] += 1 ==', splitters[-1]
+                    print 'splitter ==', splitters
+                    continue
+                state = 'declaration-specifier'
+                splitters.append(splitters[-1] + 1)
+                continue
+            if state == 'declaration-specifier':
+                # TODO(holtgrew): Enforce that the token cursors are the same to circumvent duplications, to separate the foos in e.g. Meta<int>::foo foo
+                if x.kind != tk.IDENTIFIER or x.spelling != self.node.spelling:
+                    splitters[-1] += 1
+                    print 'splitters[-1] += 1 ==', splitters[2]
+                    print 'splitter ==', splitters
+                    continue
+                splitters.append(splitters[-1] + 1)
+                splitters.append(splitters[-1])
+                state = 'parameter-list'
+                continue
+            if state == 'parameter-list':
+                print 'splitters[-1] += 1 ==', splitters[-1]
+                print 'splitter ==', splitters
+                splitters[-1] += 1
+        return ts, splitters
+
+    def checkIndentation(self):
+        ##ts, splitters = self._getDissectedTokenSet()
+        ##print ',-- dissected token set (', splitters, ')'
+        ##for i in range(len(splitters) - 1):
+        ##    print '| ', i, ' ',
+        ##    xs, xe = splitters[i], splitters[i + 1]
+        ##    for j in range(xs, xe):
+        ##        print ts[j].spelling, ', ',
+        ##    print ''
+        ##print '`--'
+        # Get token set and dissection thereof, as described above.
+        # Check whether everything up to the function name is on one line.
+        # If this is not the case then check that the attribute specifier list is correctly aligned.
+        # Check that the return type continues on the same line, any opening template braces are handled by recursing on the children.
+        # Check that the function name goes on its own line.
+        # Check that the opening parenthesis is adjacent to the function name.
+        # Check that the closing parenthesis is adjacent to the last function parameter token or to the opening parenthesis.
+        # Check that the parenthesis list starts either on its new line, correctly indented, or starts adjacent to the first opening brace.
+        # Check that the parenthesis list continues correctly.
+        ##print [(x.spelling, x.kind, ts.get_cursor(i).kind, ts.get_cursor(i).location) for i, x in enumerate(ts)]
+        left_brace = self.getLParen()
+        right_brace = self.getRParen()
+        left_bracket = self.getLBracket()
+        right_bracket = self.getRBracket()
+        ##print 'node', self.node.extent
+        ##print 'left  {', left_brace.extent, left_brace.spelling
+        ##print 'right }', right_brace.extent, right_brace.spelling
+        ##print 'left  (', left_bracket.extent, left_bracket.spelling
+        ##print 'right )', right_bracket.extent, right_bracket.spelling
+        # Left brace must be on the next line as the declaration statement's end
+        # line (position of right bracket).
+        if right_bracket.location.line + 1 != left_brace.location.line:
+            self.violations.add(lv.RuleViolation('indentation.brace', left_brace.location.file.name,
+                                                 left_brace.location.line, left_brace.location.column,
+                                                 'Left brace must be on the next line of the function header.'))
+            return  # Logged violation, return.
+        # Both braces can be adjacent.  In this case, the body is empty and we
+        # are done.
+        if self.areAdjacent(left_brace, right_brace):
+            return
+        # If the braces are on different lines (non-adjacent) then they must be
+        # both indented correctly:  To the same column as the parent node.
+        if not self.areOnSameColumn(self.node, left_brace):
+            self.violations.add(lv.RuleViolation('indentation.brace', left_brace.location.file.name,
+                                                 left_brace.location.line, left_brace.location.column,
+                                                 'Left brace must be indented correctly.'))
+        if not self.areOnSameColumn(self.node, right_brace):
+            self.violations.add(lv.RuleViolation('indentation.brace', right_brace.location.file.name,
+                                                 right_brace.location.line, right_brace.location.column,
+                                                 'Right brace must be indented correctly.'))
 
 class CompoundStmtHandler(IndentSyntaxNodeHandler):
     def __init__(self, indentation_check, handler_name, node, parent):
@@ -311,7 +508,7 @@ def getHandler(indentation_check, node, parent):
         ck.CLASS_DECL: ClassDeclHandler(indentation_check, 'class', node, parent),
         ck.ENUM_DECL: NullHandler(indentation_check, '<null>', node, parent),
         ck.FUNCTION_DECL: FunctionDeclHandler(indentation_check, 'function', node, parent),
-        ck.VAR_DECL: NullHandler(indentation_check, '<null>', node, parent),
+        ck.VAR_DECL: VarDeclHandler(indentation_check, 'variable declaration', node, parent),
         ck.PARM_DECL: NullHandler(indentation_check, '<null>', node, parent),
         ck.TYPEDEF_DECL: NullHandler(indentation_check, '<null>', node, parent),
         ck.CXX_METHOD: NullHandler(indentation_check, '<null>', node, parent),
@@ -433,7 +630,8 @@ class IndentationCheck(lc.TreeCheck):
         self.handlers = []
 
     def enterNode(self, node):
-        ##logging.info('%sNode: %s %s (%s)', ' ' * self.level, node.kind, node.spelling, node.location)
+        print >>sys.stderr, '%sEntering Node: %s %s (%s)' % (' ' * self.level, node.kind, node.spelling, node.location)
+        ##logging.info('%sEntering Node: %s %s (%s)', ' ' * self.level, node.kind, node.spelling, node.location)
         handler = getHandler(self, node, self.handlers[-1])
         self.handlers.append(handler)
         if handler:
