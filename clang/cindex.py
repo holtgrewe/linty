@@ -1999,8 +1999,11 @@ class TokenCollection(object):
         self.cursors = None
 
     def annotate(self):
-        self.cursors = (Cursor * self._num_tokens)()
+        self._cursors = (Cursor * self._num_tokens.value)()
         _clang_annotateTokens(self.translation_unit, self._token_arr, self._num_tokens, self._cursors)
+
+    def get_cursor(self, idx):
+        return self._cursors[idx]
 
     def __iter__(self):
         return iter(self.tokens)
