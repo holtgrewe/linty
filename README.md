@@ -8,6 +8,10 @@ Status
 
 Linty is currently under heavy development.
 
+There are some basic checks.  The main work currently is the indentation check
+module.  There, we aim to provide fine-grained control over the style, compa-
+rable with the available settings in the Eclipse CDT settings.
+
 Contributions through merge requests are welcome.  However, consider that large
 patch bombs hard hard to review.  It is recommended to contact the authors with
 the intent of your changes.  This allows us to help you with any problems and
