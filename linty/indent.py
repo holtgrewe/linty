@@ -13,6 +13,11 @@ import checks as lc
 
 import clang.cindex as ci
 
+# ============================================================================
+# Global Indentation Related Code
+# ============================================================================
+
+
 def lengthExpandedTabs(s, to_idx, tab_width):
     l = 0
     for i in range(0, to_idx):
@@ -24,6 +29,8 @@ def lengthExpandedTabs(s, to_idx, tab_width):
 
 
 class IndentLevel(object):
+    """Encapsulates a set of acceptable indentation levels."""
+    
     def __init__(self, indent=None, base=None, offset=None):
         assert (indent is not None) or (base is not None) or (offset is not None)
         self.levels = set()
@@ -52,43 +59,100 @@ class IndentLevel(object):
             self.levels.add(level)
 
     def __str__(self):
-        return '(%s)' % (', '.join(map(str, list(self.levels))))
+        return 'IndentLevel({%s})' % (', '.join(map(str, list(self.levels))))
+
+
+# ============================================================================
+# Basic And Generic Node Handlers
+# ============================================================================
 
 
 class IndentSyntaxNodeHandler(object):
+    """Base class for node handlers in the IndentationCheck."""
+
     def __init__(self, indentation_check, handler_name, node, parent):
         self.indentation_check = indentation_check
         self.handler_name = handler_name
         self.node = node
         self.parent = parent
+        self.config = indentation_check.config
         self.level = self._getLevelImpl()
         self.violations = indentation_check.violations
         self._token_set = None
 
+    # ------------------------------------------------------------------------
+    # Token Retrieval Related.
+    # ------------------------------------------------------------------------
+
+    def getFirstToken(self):
+        """Returns first token."""
+        ts = self._getTokenSet()
+        assert len(ts) > 0, 'There must be a first token!'
+        return ts[0]
+        
+    def _getTokenSet(self):
+        """Return TokenSet for this node, cached in self._token_set."""
+        if self._token_set:
+            return self._token_set
+        extent = self.node.extent
+        translation_unit = self.node.translation_unit
+        self._token_set = ci.tokenize(translation_unit, extent)
+        return self._token_set
+
+    # ------------------------------------------------------------------------
+    # Level-Related Methods
+    # ------------------------------------------------------------------------
+        
     def _getLevelImpl(self):
-        res = self.parent.suggestedChildLevel(self)
-        ##print '_getLevelImpl()', self, self.parent, res
-        return res
+        """Return suggested level for this handler, as suggested by the parent."""
+        suggested_level = self.parent.suggestedChildLevel(self)
+        if self.shouldIncreaseIndent():
+            suggested_level = IndentLevel(base=suggested_level, offset=self.config.indentation_size)
+        return suggested_level
 
     def suggestedChildLevel(self, indent_syntax_node_handler):
+        """Return suggested level for children."""
         return self.level
 
-    def logError(self, ast_node, subtype_name, actualLevel):
-        pass  # Log an error
+    def logViolation(self, rule_type, node, text):
+        """Log a rule violation with the given type, location, and text."""
+        v = lv.RuleViolation(rule_type, node.extent.start.file.name, node.extent.start.line,
+                             node.extent.start.column, text)
+        self.violations.add(v)
 
-    def logChildError(self, line, actual_level, expected_level):
-        pass  # Log a child indentation error.
+    def shouldIncreaseIndent(self):
+        """Returns true if children should have an increased indent level.
+
+        Override this function to change the default behaviour of returning
+        False.
+        """
+        return False
+
+    # ------------------------------------------------------------------------
+    # Indentation Checking-Related
+    # ------------------------------------------------------------------------
+    
+    def checkIndentation(self):
+        raise Exception('Abstract method!')
+
+    # ------------------------------------------------------------------------
+    # Method For Checking Cursor/Token Positions
+    # ------------------------------------------------------------------------
 
     def startsLine(self, node):
+        """Check whether the given node is at the beginning of the line."""
         return self.getLineStart(node) == self.expanddTabsColumnNo(node)
 
     def areOnSameLine(self, node1, node2):
-        return node1 and node2 and node1.location.line == node2.location.line
+        """Check whether two nodes start on the same line."""
+        return node1 and node2 and node1.extent.start.line == node2.extent.start.line
 
     def areOnSameColumn(self, node1, node2):
+        """Check whether two nodes start on the same column."""
         return node1 and node2 and node1.extent.start.column == node2.extent.start.column
 
     def areAdjacent(self, node1, node2):
+        """Check whether two nodes are directly adjacent."""
         if node1.location.file.name != node2.location.file.name:
             return False
         if node1.extent.end.line != node2.extent.start.line:
@@ -97,167 +161,16 @@ class IndentSyntaxNodeHandler(object):
             return False
         return True
 
-    def getFirstToken(self, node):
-        pass
-
-    def getLineStart(self, node):
-        pass
-
-    def checkLinesIndent(self, start_line, end_line, indent_level):
-        pass
-
-    def shouldIncreaseIndent(self):
-        return True
-
-    def checkLinesIndent(self, lines_set, indent_level, first_line_match, first_line):
-        pass
-
-    def checkSingleLine(self, line_num, indent_level, col_num=None, must_match=None):
-        pass
-
-    def getLineStart(self, line):
-        pass
-
-    def checkChildren(self, parent, token_types, start_level, first_line_matches, allow_nesting):
-        pass
-
-    def checkExpressionSubtree(self, tree, level, first_line_matches, allow_nesting):
-        pass
-
-    def getFirstLine(self, start_line, node):
-        pass
-
-    def finalSubtreeLines(self, lines, ast_tree, allow_nesting):
-        pass
-    
-    def checkModifiers(self):
-        pass
-
-    def checkIndentation(self):
-        raise Exception('Abstract method!')
-
-    def getBasicOffset(self):
-        return self.indent_check.basic_offset
-
-    def getBraceAdjustment(self):
-        return self.indent_check.brace_adjustment
-
     def expandedTabsColumnNo(self, node):
-        npath, contents, lines = self.indentation_check.file_reader.readFile(node.location.file.name)
-        line = lines[node.location.line - 1]
-        return lengthExpandedTabs(line, node.location.column - 1, self.indentation_check.config.tab_width)
-        ##print >>sys.stderr, 'LINE:', line
-
-    def _getTokenSet(self):
-        if self._token_set:
-            return self._token_set
-        extent = self.node.extent
-        translation_unit = self.node.translation_unit
-        self._token_set = ci.tokenize(translation_unit, extent)
-        return self._token_set
-
-
-class BlockParenHandler(IndentSyntaxNodeHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(BlockParenHandler, self).__init__(indentation_check, handler_name, node, parent)
-
-    def suggestedChildLevel(self, child):
-        return IndentLevel(base=self.level, offset=1)
-
-    def checkLParen(self, node, left_brace_sameline=None):
-        ##print 'XXX', __file__, self, 'checkLParen()'
-        if left_brace_sameline is None:
-            left_brace_sameline = self.indentation_check.config.brace_sameline
-        if node is None:
-            return  # No parenthesis, no error.
-        ##print self, self.level
-        if self.node.location.line == node.location.line:
-            if not left_brace_sameline:
-                self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
-                                                     node.location.line, node.location.column,
-                                                     'Left brace not allowed on same line as definition.'))
-                return  # Return after logging error.
-            else:
-                return  # OK, is allowed, everything's swell.
-        else:
-            if left_brace_sameline:
-                self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
-                                                     node.location.line, node.location.column,
-                                                     'Left brace must be on same line as definition.'))
-                return  # Return after logging error.
-            else:
-                if self.level.accept(self.expandedTabsColumnNo(left_paren)):
-                    return  # Parenthesis on correct column.
-        self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
-                                             node.location.line, node.location.column,
-                                             'Invalid column for left brace.'))
-
-    def checkRParen(self, node_left, node_right):
-        ##print 'XXX', __file__, self, 'checkRParen()'
-        if node_right is None:
-            assert node_right is None
-            logging.debug('no rparen')
-            return  # No parenthsis, no error.
-        logging.debug('level %s', self.level)
-        if not self.level.accept(self.expandedTabsColumnNo(node_right)):
-            self.violations.add(lv.RuleViolation('indentation.brace', node_right.location.file.name,
-                                                 node_right.location.line, node_right.location.column,
-                                                 'Invalid column for right brace.'))
-
-    def getLParen(self):
-        """"Return the first opening brace."""
-        tk = ci.TokenKind
-        token_set = self._getTokenSet()
-        for t in token_set:
-            if t.kind == tk.PUNCTUATION and t.spelling == '{':
-                return t
-        return None
-
-    def getLBracket(self):
-        """Return the first opening bracket."""
-        tk = ci.TokenKind
-        token_set = self._getTokenSet()
-        for t in token_set:
-            if t.kind == tk.PUNCTUATION and t.spelling == '(':
-                return t
-        return None
-
-    def getRBracket(self):
-        """Return the first closing bracket to the left of left brace."""
-        tk = ci.TokenKind
-        token_set = self._getTokenSet()
-        for i, t in enumerate(token_set):
-            if t.kind == tk.PUNCTUATION and t.spelling == '{':
-                for t2 in reversed(token_set[:i]):
-                    if t2.kind == tk.PUNCTUATION and t2.spelling == ')':
-                        return t2
-        return None
-
-    def getRParen(self):
-        """Return the last closing brace."""
-        tk = ci.TokenKind
-        token_set = self._getTokenSet()
-        for t in reversed(token_set):
-            if t.kind == tk.PUNCTUATION or t.spelling == '}':
-                return t
-        return None
-
-    def checkIndentation(self):
-        # Check indentation of current line start.
-        ##print 'Checking indentation:', self
-        token_set = self._getTokenSet()
-        ##print '  token set:', token_set
-        first_token = token_set[0]
-        if not self.level.accept(self.expandedTabsColumnNo(first_token)):
-            self.violations.add(lv.RuleViolation('indentation', first_token.location.file.name,
-                                                 first_token.location.line, first_token.location.column,
-                                                 'Invalid indentation!'))
-        # Check left and right parenthesis.
-        self.checkLParen(self.getLParen())
-        self.checkRParen(self.getLParen(), self.getRParen())
+        """Return column of node after expanding tabs."""
+        npath, contents, lines = self.indentation_check.file_reader.readFile(node.extent.start.file.name)
+        line = lines[node.extent.start.line - 1]
+        return lengthExpandedTabs(line, node.extent.start.column - 1, self.indentation_check.config.tab_size)
 
 
 class RootHandler(IndentSyntaxNodeHandler):
+    """Handler registered at the root of the cursor hierarchy."""
+
     def __init__(self, indentation_check):
         super(RootHandler, self).__init__(indentation_check, None, None, None)
     
@@ -268,351 +181,1136 @@ class RootHandler(IndentSyntaxNodeHandler):
         return IndentLevel(indent=0)
 
 
-class NullHandler(IndentSyntaxNodeHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
+    """Handler for curly brace blocks."""
+    
+    def checkCurlyBraces(self, indent_type):
+        """Check curly braces of the block.
 
+        @param indent_type  The indent type for the braces, one of 'same-line',
+                            'next-line', and 'next-line-indent'.
+        """
+        lbrace = self.getLCurlyBrace()
+        rbrace = self.getRCurlyBrace()
+        if indent_type == 'same-line':
+            if not self.areOnSameLine(self.getFirstToken(), lbrace):
+                msg = 'Opening brace should be on the same line as block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            if not self.areOnSameColumn(self.getFirstToken(), rbrace):
+                msg = 'Closing brace should be on the same column as block start.'
+                self.logViolation('indent.brace', rbrace, msg)
+        elif indent_type == 'next-line':
+            if not self.areOnSameColumn(self.getFirstToken(), lbrace):
+                msg = 'Opening brace should be on the same column as block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            t = self.getTokenLeftOfLeftLCurlyBrace()
+            if t.extent.start.line == lbrace.extent.start.line + 1:
+                msg = 'Opening brace should be on the line directly after block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            if not self.areOnSameColumn(self.getFirstToken(), rbrace):
+                msg = 'Closing brace should be on the same column as block start.'
+                self.logViolation('indent.brace', rbrace, msg)
+        else:
+            assert indent_type == 'next-line-indent'
+            t = self.getTokenLeftOfLeftLCurlyBrace()
+            if t.extent.start.line == lbrace.extent.start.line + 1:
+                msg = 'Opening brace should be on the line directly after block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            # Check that the opening and closing braces are indented one level
+            # further than the block start.
+            next_level = IndentLevel(base=self.level, offset=self.config.indentation_size)
+            if not next_level.accept(self.expandedTabsColumnNo(lbrace)):
+                msg = 'Opening brace should be indented one level further than block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            if not next_level.accept(self.expandedTabsColumnNo(rbrace)):
+                msg = 'Closing brace should be indented one level further than block start.'
+                self.logViolation('indent.brace', rbrace, msg)
+
+    def getTokenLeftOfLeftLCurlyBrace(self):
+        """Return the token left of the first opening curly brace."""
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        res = None
+        for t in token_set:
+            if t.kind == tk.PUNCTUATION and t.spelling == '{':
+                return res
+            res = t
+        assert res is not None, 'Token to the left must exist.'
+        return None
+        
+    def getLCurlyBrace(self):
+        """"Return the first opening curly brace."""
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        for t in token_set:
+            if t.kind == tk.PUNCTUATION and t.spelling == '{':
+                return t
+        assert False, 'Must have opening curly brace.'
+        return None
+
+    def getRCurlyBrace(self):
+        """Return the last closing curly brace."""
+        tk = ci.TokenKind
+        token_set = self._getTokenSet()
+        for t in reversed(token_set):
+            if t.kind == tk.PUNCTUATION or t.spelling == '}':
+                return t
+        assert False, 'Must have closing curly brace.'
+        return None
+
+
+# ============================================================================
+# Handlers For AST Nodes
+# ============================================================================
+
+
+class AddrLabelExprHandler(IndentSyntaxNodeHandler):
     def checkIndentation(self):
-        pass
+        pass  # Do nothing.
 
 
-class NamespaceHandler(BlockParenHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
+class ArraySubscriptExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
 
-    def checkLParen(self, node):
-        ##print 'XXX', __file__, self, 'checkLParen()'
-        if node is None:
-            # TODO(holtgrew): Do we need to log this? clang should not parse this even.
-            self.violations.add(lv.RuleViolation('indentation.brace', self.node.location.file.name,
-                                                 self.node.location.line, self.node.location.column,
-                                                 'Missing left brace.'))
-            return  # Return after logging error.
-        if self.node.location.line != node.location.line:
-            self.violations.add(lv.RuleViolation('indentation.brace', node.location.file.name,
-                                                 node.location.line, node.location.column,
-                                                 'Left brace must be on the same line as the namespace keyword.'))
-            return  # Return after logging error.
 
-    def checkRParen(self, node_left, node_right):
-        ##print 'XXX', __file__, self, 'checkRParen()'
-        if node_right is None:
-            # TODO(holtgrew): Do we need to log this? clang should not parse this even.
-            self.violations.add(lv.RuleViolation('indentation.brace', self.node.location.file.name,
-                                                 self.node.location.line, self.node.location.column,
-                                                 'Missing right brace.'))
-            return  # Return after logging error.
-        logging.debug('level %s', self.level)
-        # The left brace must be on the same line or have the correct
-        # indentation: "namespace <identifier> {}"
-        if self.level.accept(self.expandedTabsColumnNo(node_right)):
-            return  # OK, return.
-        if (node_left.location.line == node_right.location.line and
-            node.left.location.column + 1 == node_right.location.column):
-            return  # OK, return
-        # Otherwise, log error.
-        self.violations.add(lv.RuleViolation('indentation.brace', node_right.location.file.name,
-                                             node_right.location.line, node_right.location.column,
-                                             'Invalid column for right brace.'))
+class AsmStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class BinaryOperatorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class BlockExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class BreakStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CallExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CaseStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CharacterLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
 
 
 class ClassDeclHandler(IndentSyntaxNodeHandler):
-    """Indentation syntax node handler for classes/structs."""
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
-
     def checkIndentation(self):
-        pass
+        pass  # Do nothing.
 
-    def checkLParen(self, left_paren):
-        return super(type(self), self).checkLParen(left_paren, self.indentation_check.config.brace_sameline_class)
+    def shouldIncreaseIndent(self):
+        return self.config.indent_inside_class_struct_body
 
 
-class VarDeclHandler(IndentSyntaxNodeHandler):
-    """Indentation syntax node handler for variable declarations."""
-
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(VarDeclHandler, self).__init__(indentation_check, handler_name, node, parent)
-
+class ClassTemplateHandler(IndentSyntaxNodeHandler):
     def checkIndentation(self):
-        token_set = self._getTokenSet()
-        # Check for the correct indentation for the first token of the variable declaration.
-        first_token = token_set[0]
-        if not self.level.accept(self.expandedTabsColumnNo(first_token)):
-            logging.warning('%s' % (self.level))
-            self.violations.add(lv.RuleViolation('indentation', first_token.location.file.name,
-                                                 first_token.location.line, first_token.location.column,
-                                                 'Invalid indentation for variable declaration.'))
-        # TODO(holtgrew): Enforce further rules.
+        pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_inside_class_struct_body
 
 
-class FunctionDeclHandler(BlockParenHandler):
-    # Basically, function declarations (as in libclang) consists of (1) an
-    # attribute specifier sequence, (2) a declaration specifier sequence, and
-    # (3) a declarator, and (4) a function body.
-    #
-    # I (holtgrewe) do not see how to get the complete set of information from
-    # the libclang API.  All you can get is a token list and get back the
-    # cursors for each token.
-    #
-    # Empirically, we can make the following dissection of the tokens:
-    #
-    # (1) Everything with token kind INVALID_FILE is the declaration specifier
-    # sequence, (2) everything up to but excluding the first identifier token
-    # with the same spelling as the FunctionDecl node is the return type, (3)
-    # that token is the function name, (4) everything up to the last closing
-    # parenthesis ")" before the body is the function argument list, and we can
-    # (5) get the function body directly.
-    #
-    # Rules to enforce
-    #
-    # - The declaration specifier sequence is flushed to the current indentation level.
-    # - The return type continues the same line as the declaration specifier sequence ends on.
-    # - The function name goes to its own line or on the same line as everything before if everything goes on one line.
-    # - The opening parameter parenthesis is adjacent to the function name.
-    # - The closing bracket is adjacent to the last parameter declaration.
-    # - The parameter declarations start either on their same line with one more level of indentation or start directly after the opening parenthesis.
-    # - The parameter list continues on the same column that it was opened on.
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
-
-    def _getDissectedTokenSet(self):
-        """Get token set and dissection thereof.
-
-        The dissection is a list of integers with begin and end positions.  The
-        i-th entry contains the begin index of the i-th set, the (i+1)th entry
-        the end index.
-        """
-        ck = ci.CursorKind
-        tk = ci.TokenKind
-        ts = self._getTokenSet()
-        ts.annotate()
-        ds = []
-        splitters = [0, 0]
-        state = 'attribute-specifier'
-        ##for i, x in enumerate(ts):
-        ##    if ts.get_cursor(i) != ts.get_cursor(0):
-        ##        break  # We are beyond the function declaration.
-        ##    print 'i=', i, 'kind=', ts[i].kind, 'cursor kind=', ts.get_cursor(i).kind, ', spelling=', ts[i].spelling
-        print 'LEN(ts) ==', len(ts)
-        for i, x in enumerate(ts):
-            print ',--'
-            print '| state     ', state
-            print '| token     ', ts[i],            ts[i].extent,            ts[i].spelling
-            print '| token kind', ts[i].kind
-            print '| get cursor', ts.get_cursor(i), ts.get_cursor(i).extent, ts.get_cursor(i).spelling
-            print '| node      ', self.node,        self.node.extent,        self.node.spelling
-            print '`--'
-            if state != 'attribute-specifier' and ts.get_cursor(i) != self.node:
-                break  # We are beyond the function declaration.
-            print 'i=', i, ts.get_cursor(i).kind
-            if state == 'attribute-specifier':
-                if ts.get_cursor(i).kind == ck.INVALID_FILE:
-                    splitters[-1] += 1
-                    print 'splitters[-1] += 1 ==', splitters[-1]
-                    print 'splitter ==', splitters
-                    continue
-                state = 'declaration-specifier'
-                splitters.append(splitters[-1] + 1)
-                continue
-            if state == 'declaration-specifier':
-                # TODO(holtgrew): Enforce that the token cursors are the same to circumvent duplications, to separate the foos in e.g. Meta<int>::foo foo
-                if x.kind != tk.IDENTIFIER or x.spelling != self.node.spelling:
-                    splitters[-1] += 1
-                    print 'splitters[-1] += 1 ==', splitters[2]
-                    print 'splitter ==', splitters
-                    continue
-                splitters.append(splitters[-1] + 1)
-                splitters.append(splitters[-1])
-                state = 'parameter-list'
-                continue
-            if state == 'parameter-list':
-                print 'splitters[-1] += 1 ==', splitters[-1]
-                print 'splitter ==', splitters
-                splitters[-1] += 1
-        return ts, splitters
-
+class ClassTemplatePartialSpecializationHandler(IndentSyntaxNodeHandler):
     def checkIndentation(self):
-        ##ts, splitters = self._getDissectedTokenSet()
-        ##print ',-- dissected token set (', splitters, ')'
-        ##for i in range(len(splitters) - 1):
-        ##    print '| ', i, ' ',
-        ##    xs, xe = splitters[i], splitters[i + 1]
-        ##    for j in range(xs, xe):
-        ##        print ts[j].spelling, ', ',
-        ##    print ''
-        ##print '`--'
-        # Get token set and dissection thereof, as described above.
-        # Check whether everything up to the function name is on one line.
-        # If this is not the case then check that the attribute specifier list is correctly aligned.
-        # Check that the return type continues on the same line, any opening template braces are handled by recursing on the children.
-        # Check that the function name goes on its own line.
-        # Check that the opening parenthesis is adjacent to the function name.
-        # Check that the closing parenthesis is adjacent to the last function parameter token or to the opening parenthesis.
-        # Check that the parenthesis list starts either on its new line, correctly indented, or starts adjacent to the first opening brace.
-        # Check that the parenthesis list continues correctly.
-        ##print [(x.spelling, x.kind, ts.get_cursor(i).kind, ts.get_cursor(i).location) for i, x in enumerate(ts)]
-        left_brace = self.getLParen()
-        right_brace = self.getRParen()
-        left_bracket = self.getLBracket()
-        right_bracket = self.getRBracket()
-        ##print 'node', self.node.extent
-        ##print 'left  {', left_brace.extent, left_brace.spelling
-        ##print 'right }', right_brace.extent, right_brace.spelling
-        ##print 'left  (', left_bracket.extent, left_bracket.spelling
-        ##print 'right )', right_bracket.extent, right_bracket.spelling
-        # Left brace must be on the next line as the declaration statement's end
-        # line (position of right bracket).
-        if right_bracket.location.line + 1 != left_brace.location.line:
-            self.violations.add(lv.RuleViolation('indentation.brace', left_brace.location.file.name,
-                                                 left_brace.location.line, left_brace.location.column,
-                                                 'Left brace must be on the next line of the function header.'))
-            return  # Logged violation, return.
-        # Both braces can be adjacent.  In this case, the body is empty and we
-        # are done.
-        if self.areAdjacent(left_brace, right_brace):
-            return
-        # If the braces are on different lines (non-adjacent) then they must be
-        # both indented correctly:  To the same column as the parent node.
-        if not self.areOnSameColumn(self.node, left_brace):
-            self.violations.add(lv.RuleViolation('indentation.brace', left_brace.location.file.name,
-                                                 left_brace.location.line, left_brace.location.column,
-                                                 'Left brace must be indented correctly.'))
-        if not self.areOnSameColumn(self.node, right_brace):
-            self.violations.add(lv.RuleViolation('indentation.brace', right_brace.location.file.name,
-                                                 right_brace.location.line, right_brace.location.column,
-                                                 'Right brace must be indented correctly.'))
+        pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_inside_class_struct_body
+
+
+class CompoundAssignmentOperatorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CompoundLiteralExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
 
 class CompoundStmtHandler(IndentSyntaxNodeHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
-
     def checkIndentation(self):
-        pass
+        pass  # Do nothing.
+
+
+class ConditonalOperatorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ConstructorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ContinueStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ConversionFunctionHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CstyleCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxAccessSpecDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+    # TODO(holtgrew): Should be indented by one more level if self.config.indent_visibility_specifiers.
+    # TODO(holtgrew): Adding indentation for next tokens in case of self.config.indent_below_visibility_specifiers.
+
+
+class CxxBaseSpecifierHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxBoolLiteralExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxCatchStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxConstCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxDeleteExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxDynamicCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxForRangeStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxMethodHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxNewExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxNullPtrLiteralExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxReinterpretCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxStaticCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxThisExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxThrowExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxTryStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxTypeidExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class CxxUnaryExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class DeclRefExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class DeclStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class DefaultStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class DestructorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class DoStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class EnumConstantDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class EnumDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_inside_class_struct_body
+
+
+class FieldDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class FloatingLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ForStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class FunctionDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class FunctionTemplateHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class GenericSelectionExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class GnuNullExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class GotoStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IbActionAttrHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IbOutletAttrHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IbOutletCollectionAttrHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IfStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ImaginaryLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class InclusionDirectiveHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IndirectGotoStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class InitListExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class IntegerLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class InvalidCodeHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class InvalidFileHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class LabelRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class LabelStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class LinkageSpecHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class MacroDefinitionHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class MacroInstantiationHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class MemberRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class MemberRefExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class NamespaceHandler(CurlyBraceBlockHandler):
+    def checkIndentation(self):
+        # TODO(holtgrew): Check position of first token.
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_namespace_declaration)
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_declarations_within_namespace_definition
+
+
+class NamespaceAliasHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class NamespaceRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class NotImplementedHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class NoDeclFoundHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class NullStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAtCatchStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAtFinallyStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAtSynchronizedStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAtThrowStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAtTryStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcAutoreleasePoolStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcBridgeCastExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcCategoryDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcCategoryImplDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcClassMethodDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcClassRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcDynamicDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcEncodeExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcForCollectionStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcImplementationDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcInstanceMethodDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcInterfaceDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcIvarDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcMessageExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcPropertyDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcProtocolDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcProtocolExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcProtocolRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcSelectorExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcStringLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcSuperClassRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ObjcSynthesizeDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class OverloadedDeclRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class PackExpansionExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ParenExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class ParmDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class PreprocessingDirectiveHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
 
 
 class ReturnStmtHandler(IndentSyntaxNodeHandler):
-    def __init__(self, indentation_check, handler_name, node, parent):
-        super(type(self), self).__init__(indentation_check, handler_name, node, parent)
-
     def checkIndentation(self):
-        pass
+        pass  # Do nothing.
+
+
+class SehExceptStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class SehFinallyStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class SehTryStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class SizeOfPackExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class StringLiteralHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class StructDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_inside_class_struct_body
+
+
+class SwitchStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_within_switch_body
+
+
+class StmtexprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TemplateNonTypeParameterHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TemplateRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TemplateTemplateParameterHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TemplateTypeParameterHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TranslationUnitHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TypedefDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        """Check indentation of typedef declaration."""
+        # TODO(holtgrew): Currently, only checking for the indentation of the first token is implemented. Implement more!
+        print 'CHECK INDENTATION', self.level, self.expandedTabsColumnNo(self.node)
+        if not self.level.accept(self.expandedTabsColumnNo(self.node)):
+            # This indentation level is not valid.
+            self.logViolation('indent.statement', self.node,
+                              'Invalid indentation level.')
+
+
+class TypeAliasDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class TypeRefHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnaryOperatorHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnexposedAttrHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnexposedDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnexposedExprHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnexposedStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UnionDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UsingDeclarationHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class UsingDirectiveHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class VarDeclHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+class WhileStmtHandler(IndentSyntaxNodeHandler):
+    def checkIndentation(self):
+        pass  # Do nothing.
+
+
+# ============================================================================
+# Code For Indentation Check
+# ============================================================================
 
 
 def getHandler(indentation_check, node, parent):
-    ##print 'getHandler()', indentation_check, node, parent
-    ck = ci.CursorKind
-    HANDLERS = {
-        ck.STRUCT_DECL: ClassDeclHandler(indentation_check, 'struct', node, parent),
-        ck.UNION_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CLASS_DECL: ClassDeclHandler(indentation_check, 'class', node, parent),
-        ck.ENUM_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.FUNCTION_DECL: FunctionDeclHandler(indentation_check, 'function', node, parent),
-        ck.VAR_DECL: VarDeclHandler(indentation_check, 'variable declaration', node, parent),
-        ck.PARM_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.TYPEDEF_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_METHOD: NullHandler(indentation_check, '<null>', node, parent),
-        ck.NAMESPACE: NamespaceHandler(indentation_check, 'namespace', node, parent),
-        ck.LINKAGE_SPEC: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CONSTRUCTOR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.DESTRUCTOR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CONVERSION_FUNCTION: NullHandler(indentation_check, '<null>', node, parent),
-        ck.TEMPLATE_TYPE_PARAMETER: NullHandler(indentation_check, '<null>', node, parent),
-        ck.TEMPLATE_NON_TYPE_PARAMETER: NullHandler(indentation_check, '<null>', node, parent),
-        ck.FUNCTION_TEMPLATE: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CLASS_TEMPLATE: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION: NullHandler(indentation_check, '<null>', node, parent),
-        ck.NAMESPACE_ALIAS: NullHandler(indentation_check, '<null>', node, parent),
-        ck.USING_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
-        ck.TYPE_ALIAS_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_ACCESS_SPEC_DECL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CALL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.BLOCK_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.STRING_LITERAL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CHARACTER_LITERAL: NullHandler(indentation_check, '<null>', node, parent),
-        ck.PAREN_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.UNARY_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.ARRAY_SUBSCRIPT_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.BINARY_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.COMPOUND_ASSIGNMENT_OPERATOR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.INIT_LIST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.ADDR_LABEL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.StmtExpr: NullHandler(indentation_check, '<null>', node, parent),
-        ck.GENERIC_SELECTION_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_STATIC_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_DYNAMIC_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_REINTERPRET_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_CONST_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_FUNCTIONAL_CAST_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_TYPEID_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_BOOL_LITERAL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_NULL_PTR_LITERAL_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_THIS_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_THROW_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_NEW_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_DELETE_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_UNARY_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.PACK_EXPANSION_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.SIZE_OF_PACK_EXPR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.LABEL_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.COMPOUND_STMT: CompoundStmtHandler(indentation_check, 'compound stmt', node, parent),
-        ck.CASE_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.DEFAULT_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.IF_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.SWITCH_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.WHILE_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.DO_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.FOR_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.GOTO_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.INDIRECT_GOTO_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CONTINUE_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.BREAK_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.RETURN_STMT: ReturnStmtHandler(indentation_check, '<null>', node, parent),
-        ck.ASM_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_CATCH_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_TRY_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.CXX_FOR_RANGE_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.NULL_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.DECL_STMT: NullHandler(indentation_check, '<null>', node, parent),
-        ck.UNEXPOSED_ATTR: NullHandler(indentation_check, '<null>', node, parent),
-        ck.PREPROCESSING_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
-        ck.MACRO_DEFINITION: NullHandler(indentation_check, '<null>', node, parent),
-        ck.MACRO_INSTANTIATION: NullHandler(indentation_check, '<null>', node, parent),
-        ck.INCLUSION_DIRECTIVE: NullHandler(indentation_check, '<null>', node, parent),
-        }
-    res = HANDLERS.get(node.kind, NullHandler(indentation_check, '<null>', node, parent))
-    ##print ' -->', res
-    return res
+    # Get node kind name as UPPER_CASE, get class name and class object.
+    kind_name = repr(str(node.kind)).split('.')[-1]
+    class_name = kind_name.replace('\'', '').replace('_', ' ').title().replace(' ', '') + 'Handler'
+    klass = eval(class_name)
+    # Instantiate handler and return.
+    handler = klass(indentation_check, kind_name, node, parent)
+    return handler
+
+
+class UnknownParameter(Exception):
+    """Raised when an unknown indentation parameter is used."""
 
 
 class IndentationConfig(object):
-    def __init__(self, indent_width=4, tab_width=4, brace_adjustment=None,
-                 case_indent=None, brace_sameline=False, brace_sameline_class=None,
-                 brace_sameline_fun=None, brace_sameline_infun=None, brace_sameline_namespace=None):
-        self.indent_width = indent_width
-        self.tab_width = tab_width
-        self.brace_adjustment = brace_adjustment or indent_width
-        self.case_indent = case_indent or indent_width
-        self.brace_sameline = brace_sameline
-        if brace_sameline_class is None:
-            self.brace_sameline_class = brace_sameline
-        else:
-            self.brace_sameline_class = brace_sameline_class
-        if brace_sameline_fun is None:
-            self.brace_sameline_fun = brace_sameline
-        else:
-            self.brace_sameline_fun = brace_sameline_fun
-        if brace_sameline_infun is None:
-            self.brace_sameline_infun = brace_sameline
-        else:
-            self.brace_sameline_infun = brace_sameline_infun
-        if brace_sameline_namespace is None:
-            self.brace_sameline_namespace = brace_sameline
-        else:
-            self.brace_sameline_namespace = brace_sameline_namespace
+    """Configuration for the indentation check.
 
+    Look into the source for all the settings, there are a LOT.
+    """
+    
+    def __init__(self, **kwargs):
+        """Initialize indentation settings with K&R style."""
+
+        # The settings here are based on the Eclipse CDT indentation config, K&R
+        # style.
+        #
+        # We will first set the default values.  Then, this represents the known
+        # style parameters and we will overwrite the properties from kwargs if
+        # they are already there.
+        
+        # --------------------------------------------------------------------
+        # General Settings
+        # --------------------------------------------------------------------
+
+        # The policy for tabs to accept.
+        # Valid values: 'tabs-only', 'spaces-only', 'mixed'.
+        self.tab_policy = 'spaces-only'
+        # The number of spaces to use for one indentation.
+        self.indentation_size = 4
+        # The number of spaces that one TAB character is wide.
+        self.tab_size = 4
+
+        # --------------------------------------------------------------------
+        # Indent
+        # --------------------------------------------------------------------
+        
+        # Indent 'public', 'protected', and 'private' within class body.
+        self.indent_visibility_specifiers = False
+        # Indent declarations relative to 'public', 'procted, and 'private'.
+        self.indent_below_visibility_specifiers = True
+        # Indent declarations relative to class/struct body.
+        self.indent_inside_class_struct_body = True
+        # Indent statements within function bodies.
+        self.indent_statements_within_function_bodies = True
+        # Indent statements within blocks.
+        self.indent_statements_within_blocks = True
+        # Indent statements within switch blocks.
+        self.indent_statements_within_switch_body = False
+        # Indent statements within case body.
+        self.indent_statements_within_case_body = True
+        # Indent 'break' statements.
+        self.indent_break_statements = True
+        # Indent declarations within 'namespace' definition.
+        self.indent_declarations_within_namespace_definition = False
+        # Indent empty lines.  DEACTIVATED
+        # self.indent_empty_lines = False
+
+        # --------------------------------------------------------------------
+        # Brace Positions
+        # --------------------------------------------------------------------
+
+        # Valid values for the following variables are 'same-line', 'next-line',
+        # 'next-line-indented'.
+
+        # Brace positions for class declarations.
+        self.brace_positions_class_declaration = 'same-line'
+        # Brace positions for namespace declarations.
+        self.brace_positions_namespace_declaration = 'same-line'
+        # Brace positions for function declarations.
+        self.brace_positions_function_declaration = 'same-line'
+        # Brace positions for blocks.
+        self.brace_positions_blocks = 'same-line'
+        # Brace positions of blocks in case statements.
+        self.brace_positions_blocks_in_case_statement = 'same-line'
+        # Brace positions of switch statements.
+        self.brace_positions_switch_statement = 'same-line'
+        # Brace positions for initializer list.
+        self.brace_positions_brace_positions_initializer_list = 'same-line'
+        # Keep empty initializer list on one line.
+        self.brace_positions_keep_empty_initializer_list_on_one_line = True
+
+        # --------------------------------------------------------------------
+        # White Space
+        # --------------------------------------------------------------------
+
+        # Declarations / Types
+        
+        # Insert space before opening brace of a class.
+        self.insert_space_before_opening_brace_of_a_class = True
+        # Insert space before colon of base clause.
+        self.insert_space_before_colon_of_base_clause = False
+        # Insert space after colon of base clause.
+        self.insert_space_after_colon_of_base_clause = True
+        # Insert space before_comma_in_base_clause.
+        self.insert_space_before_comma_in_base_clause = False
+        # Insert space after comma in base clause.
+        self.insert_space_after_comma_in_base_clause = True
+
+        # Declarations / Declarator list
+
+        # Insert space before comma in declarator list.
+        self.insert_space_before_comma_in_declarator_list = False
+        # Insert space after comma in declarator list.
+        self.insert_space_after_comma_in_declarator_list = True
+
+        # Declarations / Functions
+
+        self.insert_space_before_opening_function_parenthesis = False
+        self.insert_space_after_opening_function_parenthesis = False
+        self.insert_space_before_closing_function_parenthesis = False
+        self.insert_space_between_empty_function_parentheses = False
+        self.insert_space_before_opening_function_brace = True
+        self.insert_space_before_comma_in_parameters = False
+        self.insert_space_after_comma_in_parameters = True
+
+        # Declarations / Exception Specification
+
+        self.insert_space_before_opening_exception_specification_parenthesis = True
+        self.insert_space_after_opening_exception_specification_parenthesis = False
+        self.insert_space_before_closing_exception_specification_parenthesis = False
+        self.insert_space_between_empty_exception_specification_parenthesis = True
+        self.insert_space_before_comma_in_exception_specification_parameters = False
+        self.insert_space_after_comma_in_exception_specification_parameters = True
+
+        # Declarations / Labels
+
+        self.insert_space_before_label_colon = False
+        self.insert_space_after_label_colon = True
+
+        # Control Statements
+
+        self.insert_space_before_control_statement_semicolon = False;
+
+        # Control Statements / Blocks
+
+        self.insert_space_before_opening_block_brace = True
+        self.insert_space_after_closing_block_brace = True
+
+        # Control Statements / 'if else'
+
+        self.insert_space_before_opening_if_else_parenthesis = True
+        self.insert_space_after_opening_if_else_parenthesis = False
+        self.insert_space_before_closing_if_else_parenthesis = False
+
+        # Control Statements / 'for'
+
+        self.insert_space_before_opening_for_parenthesis = True
+        self.insert_space_after_opening_for_parenthesis = False
+        self.insert_space_before_closing_for_parenthesis = False
+        self.insert_space_before_for_semicolon = False
+        self.insert_space_after_for_semicolon = True
+
+        # Control Statements / 'switch'
+
+        self.insert_space_before_colon_in_switch_case = False
+        self.insert_space_before_colon_in_switch_default = False
+        self.insert_space_before_opening_switch_brace = True
+        self.insert_space_before_opening_switch_parenthesis = True
+        self.insert_space_after_opening_switch_parenthesis = False
+        self.insert_space_before_closing_switch_parenthesis = False
+
+        # Control Statements / 'while' & 'do while'
+
+        self.insert_space_before_opening_do_while_parenthesis = True
+        self.insert_space_after_opening_do_while_parenthesis = False
+        self.insert_space_before_closing_do_while_parenthesis = False
+
+        # Control Statements / 'catch'
+
+        self.insert_space_before_opening_catch_parenthesis = True
+        self.insert_space_after_opening_catch_parenthesis = False
+        self.insert_space_before_closing_catch_parenthesis = False
+
+        # Expressions / Function invocations
+
+        self.insert_space_before_opening_function_invocation_parenthesis = False
+        self.insert_space_after_opening_function_invocation_parenthesis = False
+        self.insert_space_before_closing_function_invocation_parenthesis = False
+        self.insert_space_between_empty_function_invocation_parentheses = False
+        self.insert_space_before_comma_in_function_arguments = False
+        self.insert_space_after_comma_in_function_arguments = True
+
+        # Expressions / Assignments
+
+        self.insert_space_before_assignment_operator = True
+        self.insert_space_after_assignment_operator = True
+
+        # Expressions / Initializer list
+
+        self.insert_space_before_opening_initializer_list_brace = True
+        self.insert_space_after_opening_initializer_list_brace = True
+        self.insert_space_before_closing_initializer_list_brace = True
+        self.insert_space_before_initializer_list_comma = False
+        self.insert_space_after_initializer_list_comma = True
+        self.insert_space_between_empty_initializer_list_braces = False
+
+        # Expressions / Operators
+
+        self.insert_space_before_binary_operators = True
+        self.insert_space_after_binary_operators = True
+        self.insert_space_before_unary_operators = False
+        self.insert_space_after_unary_operators = False
+        self.insert_space_before_prefix_operators = False
+        self.insert_space_after_prefix_operators = False
+        self.insert_space_before_postfix_operators = False
+        self.insert_space_after_postfix_operators = False
+
+        # Expressions / Parenthesized expressions
+
+        self.insert_space_before_opening_parenthesis = False
+        self.insert_space_after_opening_parenthesis = False
+        self.insert_space_before_closing_parenthesis = False
+
+        # Expressions / Type casts
+
+        self.insert_space_after_opening_parenthesis = False
+        self.insert_space_before_closing_parenthesis = False
+        self.insert_space_after_closing_parenthesis = True
+
+        # Expressions / Conditionals
+
+        self.insert_space_before_conditional_question_mark = True
+        self.insert_space_after_conditional_question_mark = True
+        self.insert_space_before_conditional_colon = True
+        self.insert_space_after_conditional_colon = True
+
+        # Expressions / Expression list
+
+        self.insert_space_before_comma_in_expression_list = False
+        self.insert_space_after_comma_in_expression_list = True
+
+        # Arrays
+
+        self.insert_space_before_opening_array_bracket = False
+        self.insert_space_after_opening_array_bracket = False
+        self.insert_space_before_closing_array_bracket = False
+        self.insert_space_between_empty_array_brackets = False
+
+        # Templates / Template arguments
+
+        self.insert_space_before_opening_template_argument_angle_bracket = False
+        self.insert_space_after_opening_template_argument_angle_bracket = False
+        self.insert_space_before_template_argument_comma = False
+        self.insert_space_after_template_argument_comma = True
+        self.insert_space_before_closing_template_argument_angle_bracket = False
+        self.insert_space_after_closing_template_argument_angle_bracket = True
+
+        # Templates / Template parameters
+
+        self.insert_space_before_opening_template_parameter_angle_bracket = False
+        self.insert_space_after_opening_template_parameter_angle_bracket = False
+        self.insert_space_before_template_parameter_comma = False
+        self.insert_space_after_template_parameter_comma = True
+        self.insert_space_before_closing_template_parameter_angle_bracket = False
+        self.insert_space_after_closing_template_parameter_angle_bracket = True
+        
+
+        # --------------------------------------------------------------------
+        # Control Statements (General)
+        # --------------------------------------------------------------------
+
+        # Insert new line before 'else' in an 'if' statement.
+        self.insert_new_line_before_else_in_an_if_statement = False
+        # Insert new line before 'catch' in a 'try' statement.
+        self.insert_new_line_before_catch_in_a_try_statement = False
+        # Insert new line before 'while' in a 'do' statement.
+        self.insert_new_line_before_while_in_a_do_statement = False
+
+        # --------------------------------------------------------------------
+        # Control Statements ('if else')
+        # --------------------------------------------------------------------
+
+        # Keep 'then' statement on same line.
+        self.keep_then_statement_on_same_line = False
+        # Keep simple 'if' on one line.
+        self.keep_simple_if_on_one_line = False
+        # Keep 'else' statement on same line.
+        self.keep_else_statement_on_same_line = False
+        # Keep 'else if' on one line.
+        self.keep_else_if_on_one_line = True
+
+        # --------------------------------------------------------------------
+        # Line Wrapping
+        # --------------------------------------------------------------------
+
+        # Line wrappings in brackets (parameter and initializer lists).
+
+        # Wrapped lines are allowed to flush to the start of the previous list.
+        self.line_wrapping_allow_flush = True
+        # Wrapped lines are allowed to be indented.
+        self.line_wrapping_allow_indent = True
+        # By how many levels to indent wrapped lines.
+        self.line_wrapping_indent = 2
+
+        # Wrapped initializer list lines are allowed to flush to the start of
+        # the previous list.
+        self.line_wrapping_initializer_list_allow_flush = True
+        # Wrapped initializer list lines are allowed to be indented.
+        self.line_wrapping_initializer_list_allow_indent = True
+        # By how many levels to indent wrapped initializer list lines.
+        self.line_wrapping_initializer_list_indent = 2
+
+        # --------------------------------------------------------------------
+        # Overwrite From kwargs
+        # --------------------------------------------------------------------
+
+        for key, value in kwargs.items():
+            if not hasattr(self, key):
+                raise UnknownParameter('Unknown parameter "%s".' % key)
+            setattr(self, key, value)
+        
 
 class IndentationCheck(lc.TreeCheck):
+    """Check for code and brace indentation."""
+
     def __init__(self, config=IndentationConfig()):
         super(IndentationCheck, self).__init__()
         self.config = config
@@ -630,9 +1328,9 @@ class IndentationCheck(lc.TreeCheck):
         self.handlers = []
 
     def enterNode(self, node):
-        print >>sys.stderr, '%sEntering Node: %s %s (%s)' % (' ' * self.level, node.kind, node.spelling, node.location)
-        ##logging.info('%sEntering Node: %s %s (%s)', ' ' * self.level, node.kind, node.spelling, node.location)
+        logging.debug('%sEntering Node: %s %s (%s)', '  ' * self.level, node.kind, node.spelling, node.location)
         handler = getHandler(self, node, self.handlers[-1])
+        logging.debug('  %s[indent level=%s]', '  ' * self.level, str(handler.level))
         self.handlers.append(handler)
         if handler:
             handler.checkIndentation()

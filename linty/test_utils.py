@@ -13,7 +13,7 @@ class Data(object):
         self.__dict__.update(kwargs)
 
 
-def checkTUStr(cppStr, ast_check=None, file_check=None):
+def checkTUStr(cppStr, ast_check=None, file_check=None, config={}):
     """Run check on the C++ program given as the string cppStr.
 
     Returns a set with the violations.

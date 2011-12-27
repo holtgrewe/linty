@@ -12,4 +12,3 @@ foo(int y = bar())
     static int i = 0;
     return i;
 }
-        
