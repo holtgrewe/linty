@@ -13,7 +13,7 @@ import linty.whitespace as lw
 BASE_PATH = os.path.dirname(__file__)
 
 INDENT_CONFIG = li.IndentationConfig(
-    brace_positions_class_declaration = 'next-line',
+    brace_positions_class_struct_declaration = 'next-line',
     brace_positions_function_declaration = 'next-line',
     brace_positions_blocks = 'next-line',
     brace_positions_blocks_in_case_statement = 'next-line',

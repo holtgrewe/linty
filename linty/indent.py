@@ -106,13 +106,14 @@ class IndentSyntaxNodeHandler(object):
     def _getLevelImpl(self):
         """Return suggested level for this handler, as suggested by the parent."""
         suggested_level = self.parent.suggestedChildLevel(self)
-        if self.shouldIncreaseIndent():
-            suggested_level = IndentLevel(base=suggested_level, offset=self.config.indentation_size)
         return suggested_level
 
     def suggestedChildLevel(self, indent_syntax_node_handler):
         """Return suggested level for children."""
-        return self.level
+        if self.shouldIncreaseIndent():
+            return IndentLevel(base=self.level, offset=self.config.indentation_size)
+        else:
+            return IndentLevel(base=self.level, offset=0)
 
     def logViolation(self, rule_type, node, text):
         """Log a rule violation with the given type, location, and text."""
@@ -219,6 +220,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             # Check that the opening and closing braces are indented one level
             # further than the block start.
             next_level = IndentLevel(base=self.level, offset=self.config.indentation_size)
+            print 'rbrace     ', rbrace.spelling, rbrace.extent
+            print 'next level ', next_level
             if not next_level.accept(self.expandedTabsColumnNo(lbrace)):
                 msg = 'Opening brace should be indented one level further than block start.'
                 self.logViolation('indent.brace', lbrace, msg)
@@ -253,7 +256,7 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         for t in reversed(token_set):
-            if t.kind == tk.PUNCTUATION or t.spelling == '}':
+            if t.kind == tk.PUNCTUATION and t.spelling == '}':
                 return t
         assert False, 'Must have closing curly brace.'
         return None
@@ -309,9 +312,11 @@ class CharacterLiteralHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class ClassDeclHandler(IndentSyntaxNodeHandler):
+class ClassDeclHandler(CurlyBraceBlockHandler):
     def checkIndentation(self):
-        pass  # Do nothing.
+        # TODO(holtgrew): Check position of first token.
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
     def shouldIncreaseIndent(self):
         return self.config.indent_inside_class_struct_body
@@ -864,12 +869,8 @@ class StringLiteralHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class StructDeclHandler(IndentSyntaxNodeHandler):
-    def checkIndentation(self):
-        pass  # Do nothing.
-
-    def shouldIncreaseIndent(self):
-        return self.config.indent_inside_class_struct_body
+class StructDeclHandler(ClassDeclHandler):
+    """The handler for struct declarations is the same as for classes."""
 
 
 class SwitchStmtHandler(IndentSyntaxNodeHandler):
@@ -1060,8 +1061,8 @@ class IndentationConfig(object):
         # Valid values for the following variables are 'same-line', 'next-line',
         # 'next-line-indented'.
 
-        # Brace positions for class declarations.
-        self.brace_positions_class_declaration = 'same-line'
+        # Brace positions for class / struct declarations.
+        self.brace_positions_class_struct_declaration = 'same-line'
         # Brace positions for namespace declarations.
         self.brace_positions_namespace_declaration = 'same-line'
         # Brace positions for function declarations.
