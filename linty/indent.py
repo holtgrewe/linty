@@ -134,7 +134,23 @@ class IndentSyntaxNodeHandler(object):
     # ------------------------------------------------------------------------
     
     def checkIndentation(self):
-        raise Exception('Abstract method!')
+        """Most basic implementation for indentation checks.
+
+        The basic implementation just calls checkStartColumn().
+        """
+        self.checkStartColumn()
+
+    def checkStartColumn(self):
+        """Check the start column of the handled node for valid indentation.
+
+        If the node does not start the line (i.e. there are nodes left of it on
+        the same line) then the check is skipped.
+        """
+        if not self.startsLine(self, self.node):
+            logging.debug("Node does not start line (%s).", self.node.extent)
+            return
+        if not self.level.accept(self.node.extent.start.column):
+            self.logViolation('indent.generic', self.node, 'Invalid indent.')
 
     # ------------------------------------------------------------------------
     # Method For Checking Cursor/Token Positions
@@ -167,6 +183,15 @@ class IndentSyntaxNodeHandler(object):
         npath, contents, lines = self.indentation_check.file_reader.readFile(node.extent.start.file.name)
         line = lines[node.extent.start.line - 1]
         return lengthExpandedTabs(line, node.extent.start.column - 1, self.indentation_check.config.tab_size)
+    def getLineStart(self, node):
+        """Return expanded column of line starts (non-whitespace char)."""
+        npath, contents, lines = self.indentation_check.file_reader.readFile(node.extent.start.file.name)
+        line = lines[node.extent.start.line - 1]
+        i = 0
+        for i, x in enumerate(line):
+            if not x.isspace():
+                break
+        return lengthExpandedTabs(line, i, self.indentation_check.config.tab_size)
 
 
 class RootHandler(IndentSyntaxNodeHandler):
