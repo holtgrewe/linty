@@ -193,9 +193,16 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
         """
         lbrace = self.getLCurlyBrace()
         rbrace = self.getRCurlyBrace()
+        t = self.getTokenLeftOfLeftLCurlyBrace()
+        # Exit if there is no left curly brace and check for coherence of rbrace
+        # and t.
+        if lbrace is None:
+            assert rbrace is None
+            assert t is None
+            return
         if indent_type == 'same-line':
-            if not self.areOnSameLine(self.getFirstToken(), lbrace):
-                msg = 'Opening brace should be on the same line as block start.'
+            if not self.areOnSameLine(t, lbrace):
+                msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
@@ -204,7 +211,6 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if not self.areOnSameColumn(self.getFirstToken(), lbrace):
                 msg = 'Opening brace should be on the same column as block start.'
                 self.logViolation('indent.brace', lbrace, msg)
-            t = self.getTokenLeftOfLeftLCurlyBrace()
             if t.extent.start.line == lbrace.extent.start.line + 1:
                 msg = 'Opening brace should be on the line directly after block start.'
                 self.logViolation('indent.brace', lbrace, msg)
@@ -213,7 +219,6 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
                 self.logViolation('indent.brace', rbrace, msg)
         else:
             assert indent_type == 'next-line-indent'
-            t = self.getTokenLeftOfLeftLCurlyBrace()
             if t.extent.start.line == lbrace.extent.start.line + 1:
                 msg = 'Opening brace should be on the line directly after block start.'
                 self.logViolation('indent.brace', lbrace, msg)
@@ -230,7 +235,7 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
                 self.logViolation('indent.brace', rbrace, msg)
 
     def getTokenLeftOfLeftLCurlyBrace(self):
-        """Return the token left of the first opening curly brace."""
+        """Return the token left of the first opening curly brace or None."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         res = None
@@ -238,27 +243,24 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if t.kind == tk.PUNCTUATION and t.spelling == '{':
                 return res
             res = t
-        assert res is not None, 'Token to the left must exist.'
         return None
         
     def getLCurlyBrace(self):
-        """"Return the first opening curly brace."""
+        """"Return the first opening curly brace or None."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         for t in token_set:
             if t.kind == tk.PUNCTUATION and t.spelling == '{':
                 return t
-        assert False, 'Must have opening curly brace.'
         return None
 
     def getRCurlyBrace(self):
-        """Return the last closing curly brace."""
+        """Return the last closing curly brace or None."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
         for t in reversed(token_set):
             if t.kind == tk.PUNCTUATION and t.spelling == '}':
                 return t
-        assert False, 'Must have closing curly brace.'
         return None
 
 
@@ -313,6 +315,12 @@ class CharacterLiteralHandler(IndentSyntaxNodeHandler):
 
 
 class ClassDeclHandler(CurlyBraceBlockHandler):
+    """Handler for class declarations.
+
+    This does not include class template declarations or partial class template
+    specializations.
+    """
+    
     def checkIndentation(self):
         # TODO(holtgrew): Check position of first token.
         # Check position of braces.
@@ -322,17 +330,31 @@ class ClassDeclHandler(CurlyBraceBlockHandler):
         return self.config.indent_inside_class_struct_body
 
 
-class ClassTemplateHandler(IndentSyntaxNodeHandler):
+class ClassTemplateHandler(CurlyBraceBlockHandler):
+    """Handler for class templates.
+
+    This includes struct templates.
+    """
+    
     def checkIndentation(self):
-        pass  # Do nothing.
+        # TODO(holtgrew): Check position of first token.
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
     def shouldIncreaseIndent(self):
         return self.config.indent_inside_class_struct_body
 
 
-class ClassTemplatePartialSpecializationHandler(IndentSyntaxNodeHandler):
+class ClassTemplatePartialSpecializationHandler(CurlyBraceBlockHandler):
+    """Handler for partial class template specializations.
+
+    This includes struct templates.
+    """
+    
     def checkIndentation(self):
-        pass  # Do nothing.
+        # TODO(holtgrew): Check position of first token.
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
     def shouldIncreaseIndent(self):
         return self.config.indent_inside_class_struct_body
@@ -870,7 +892,10 @@ class StringLiteralHandler(IndentSyntaxNodeHandler):
 
 
 class StructDeclHandler(ClassDeclHandler):
-    """The handler for struct declarations is the same as for classes."""
+    """The handler for struct declarations is the same as for classes.
+
+    Subclassing is (mis-)used as quasi-aliasing here.
+    """
 
 
 class SwitchStmtHandler(IndentSyntaxNodeHandler):
