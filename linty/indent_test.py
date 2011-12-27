@@ -373,9 +373,8 @@ void f() {
 def test_break_statement_indent_correct():
     cpp_str = """
 void f() {
-    while (true) {
+    while (true)
         break;  // relevant line
-    }
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -387,9 +386,8 @@ void f() {
 def test_break_statement_indent_incorrect():
     cpp_str = """
 void f() {
-    while (true) {
+    while (true)
     break;  // relevant line
-    }
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -1329,3 +1327,76 @@ void f() {
     assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
+
+
+# ============================================================================
+# Tests for the conditional operator handler.
+# ============================================================================
+
+def test_conditional_operator_indent_correct():
+    cpp_str = """
+void f() {
+    (3 > 4) ? true : false;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_conditional_operator_indent_incorrect():
+    cpp_str = """
+void f() {
+(3 > 4) ? true : false;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# ============================================================================
+# Tests for the constructor handler.
+# ============================================================================
+
+# TODO(holtgrew): Implement later on.
+
+
+# ============================================================================
+# Tests for the continue statement handler.
+# ============================================================================
+
+def test_continue_statement_indent_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        continue;  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_continue_statement_indent_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+    continue;  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 5

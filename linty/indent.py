@@ -458,6 +458,7 @@ class ConditionalOperatorHandler(IndentSyntaxNodeHandler):
 
 class ConstructorHandler(IndentSyntaxNodeHandler):
     """Handler for Constructor nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
@@ -1209,8 +1210,9 @@ class VarDeclHandler(IndentSyntaxNodeHandler):
 class WhileStmtHandler(CurlyBraceBlockHandler):
     """Handler for WhileStmt nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        """Returns True."""
+        return True
 
 
 # ============================================================================
