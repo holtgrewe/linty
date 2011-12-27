@@ -924,3 +924,217 @@ class MyClass<int, T>
     assert v.line == 7
     assert v.column == 1
 
+
+# ============================================================================
+# Tests for the address label expression handler.
+# ============================================================================
+
+# TODO(holtgrew): Decide what to do with this.
+
+
+# ============================================================================
+# Tests for the array subscript expression handler.
+# ============================================================================
+
+def test_array_subscript_expression_indent_correct():
+    cpp_str = """
+void f() {
+    int arr[10];
+    arr[0];  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_array_subscript_expression_indent_incorrect():
+    cpp_str = """
+void f() {
+    int arr[10];
+arr[0];  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 1
+
+
+# ============================================================================
+# Tests for the asm statement handler.
+# ============================================================================
+
+def test_asm_statement_expression_indent_correct():
+    cpp_str = """
+void f() {
+    asm("mov eax 0");  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_asm_statement_expression_indent_incorrect():
+    cpp_str = """
+void f() {
+asm("mov eax 0");  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# ============================================================================
+# Tests for the binary operator handler.
+# ============================================================================
+
+def test_binary_operator_expression_indent_correct():
+    cpp_str = """
+void f() {
+    5 < 6;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_binary_operator_expression_indent_incorrect():
+    cpp_str = """
+void f() {
+5 < 6;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# ============================================================================
+# Tests for the block expr handler.
+# ============================================================================
+
+def test_block_expression_indent_correct():
+    cpp_str = """
+void f() {
+    ^ (int) { return 0; }  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_block_expression_indent_incorrect():
+    cpp_str = """
+void f() {
+^ (int) { return 0; }  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# ============================================================================
+# Tests for the break statement handler.
+# ============================================================================
+
+def test_break_statement_indent_correct():
+    cpp_str = """
+void f() {
+    while (true) {
+        break;  // relevant line
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_break_statement_indent_incorrect():
+    cpp_str = """
+void f() {
+    while (true) {
+    break;  // relevant line
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 5
+
+
+# ============================================================================
+# Tests for the call expression handler.
+# ============================================================================
+
+def test_call_expression_indent_correct():
+    cpp_str = """
+void bar() {}
+
+void f() {
+    bar();  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_call_expression_indent_incorrect():
+    cpp_str = """
+void bar() {}
+
+void f() {
+bar();  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 1
+
+# ============================================================================
+# Tests for the case statement handler.
+# ============================================================================
+
+# TODO(holtgrew): Continue here, this is more involved.

@@ -146,11 +146,15 @@ class IndentSyntaxNodeHandler(object):
         If the node does not start the line (i.e. there are nodes left of it on
         the same line) then the check is skipped.
         """
-        if not self.startsLine(self, self.node):
+        ##print >>sys.stderr, 'START\t\t', self.node.extent.start
+        ##print >>sys.stderr, 'LEVELs\t\t', self.level.levels
+        if not self.startsLine(self.node):
             logging.debug("Node does not start line (%s).", self.node.extent)
             return
-        if not self.level.accept(self.node.extent.start.column):
-            self.logViolation('indent.generic', self.node, 'Invalid indent.')
+        if not self.level.accept(self.expandedTabsColumnNo(self.node)):
+            params = (', '.join(map(str, self.level.levels)), )
+            msg = 'Invalid indent. Expecting one of {%s}' % params
+            self.logViolation('indent.generic', self.node, msg)
 
     # ------------------------------------------------------------------------
     # Method For Checking Cursor/Token Positions
@@ -158,7 +162,7 @@ class IndentSyntaxNodeHandler(object):
 
     def startsLine(self, node):
         """Check whether the given node is at the beginning of the line."""
-        return self.getLineStart(node) == self.expanddTabsColumnNo(node)
+        return self.getLineStart(node) == self.expandedTabsColumnNo(node)
 
     def areOnSameLine(self, node1, node2):
         """Check whether two nodes start on the same line."""
@@ -250,8 +254,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             # Check that the opening and closing braces are indented one level
             # further than the block start.
             next_level = IndentLevel(base=self.level, offset=self.config.indentation_size)
-            print 'rbrace     ', rbrace.spelling, rbrace.extent
-            print 'next level ', next_level
+            ##print 'rbrace     ', rbrace.spelling, rbrace.extent
+            ##print 'next level ', next_level
             if not next_level.accept(self.expandedTabsColumnNo(lbrace)):
                 msg = 'Opening brace should be indented one level further than block start.'
                 self.logViolation('indent.brace', lbrace, msg)
@@ -293,9 +297,11 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
 # Handlers For AST Nodes
 # ============================================================================
 
+# TODO(holtgrew): Checks for more complex structure.
 
 class AddrLabelExprHandler(IndentSyntaxNodeHandler):
     """Handler for AddrLabelExpr nodes."""
+    # TODO(holtgrew): Decide what to do with this.
 
 
 class ArraySubscriptExprHandler(IndentSyntaxNodeHandler):
@@ -386,8 +392,12 @@ class CompoundLiteralExprHandler(IndentSyntaxNodeHandler):
 
 class CompoundStmtHandler(IndentSyntaxNodeHandler):
     """Handler for CompoundStmt nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
 
 
 class ConditionalOperatorHandler(IndentSyntaxNodeHandler):
@@ -1048,7 +1058,7 @@ class TypedefDeclHandler(IndentSyntaxNodeHandler):
     def checkIndentation(self):
         """Check indentation of typedef declaration."""
         # TODO(holtgrew): Currently, only checking for the indentation of the first token is implemented. Implement more!
-        print 'CHECK INDENTATION', self.level, self.expandedTabsColumnNo(self.node)
+        ##print 'CHECK INDENTATION', self.level, self.expandedTabsColumnNo(self.node)
         if not self.level.accept(self.expandedTabsColumnNo(self.node)):
             # This indentation level is not valid.
             self.logViolation('indent.statement', self.node,
