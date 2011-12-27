@@ -344,7 +344,9 @@ class ClassDeclHandler(CurlyBraceBlockHandler):
     """
 
     def checkIndentation(self):
-        # TODO(holtgrew): Check position of first token.
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
@@ -359,7 +361,9 @@ class ClassTemplateHandler(CurlyBraceBlockHandler):
     """
 
     def checkIndentation(self):
-        # TODO(holtgrew): Check position of first token.
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
@@ -374,7 +378,9 @@ class ClassTemplatePartialSpecializationHandler(CurlyBraceBlockHandler):
     """
 
     def checkIndentation(self):
-        # TODO(holtgrew): Check position of first token.
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
