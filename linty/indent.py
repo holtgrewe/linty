@@ -156,6 +156,10 @@ class IndentSyntaxNodeHandler(object):
             msg = 'Invalid indent. Expecting one of {%s}' % params
             self.logViolation('indent.generic', self.node, msg)
 
+    def handlesChildCurlyBraces(self):
+        """Returns True when it handles child curly braces itself."""
+        return False
+
     # ------------------------------------------------------------------------
     # Method For Checking Cursor/Token Positions
     # ------------------------------------------------------------------------
@@ -205,15 +209,36 @@ class RootHandler(IndentSyntaxNodeHandler):
         super(RootHandler, self).__init__(indentation_check, None, None, None)
 
     def checkIndentation(self):
+        """Do nothing by design."""
         pass  # Nothing to check.
 
     def _getLevelImpl(self):
+        """Return IndentLevel(indent=0) to start with."""
         return IndentLevel(indent=0)
+
+
+class UnexposedNodeHandler(IndentSyntaxNodeHandler):
+    """Base class for handlers of unexposed nodes.
+
+    Currently only forwards handlesChildCurlyBraces() to parent and indentation
+    check is switched off.
+    """
+
+    def checkIndentation(self):
+        """Does nothing by design."""
+
+    def handlesChildCurlyBraces(self):
+        """Forward to parent."""
+        return self.parent.handlesChildCurlyBraces()
 
 
 class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
     """Handler for curly brace blocks."""
 
+    def handlesChildCurlyBraces(self):
+        """Return True."""
+        return True
+    
     def checkCurlyBraces(self, indent_type):
         """Check curly braces of the block.
 
@@ -316,8 +341,10 @@ class BinaryOperatorHandler(IndentSyntaxNodeHandler):
     """Handler for BinaryOperator nodes."""
 
 
-class BlockExprHandler(IndentSyntaxNodeHandler):
+class BlockExprHandler(CurlyBraceBlockHandler):
     """Handler for BlockExpr nodes."""
+
+    # TODO(holtgrew): Sophisticated checks.
 
 
 class BreakStmtHandler(IndentSyntaxNodeHandler):
@@ -396,11 +423,30 @@ class CompoundLiteralExprHandler(IndentSyntaxNodeHandler):
     """Handler for CompoundLiteralExpr nodes."""
 
 
-class CompoundStmtHandler(IndentSyntaxNodeHandler):
+class CompoundStmtHandler(CurlyBraceBlockHandler):
     """Handler for CompoundStmt nodes."""
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        """Check indentation when required.
+
+        Checking of indentation is only required when the parenting node does
+        not take care of this itself.
+        """
+        if not self.needsToCheckIndentation():
+            return  # Skip checking
+
+        lbrace = self.getLCurlyBrace()
+        if not self.level.accept(lbrace):
+            msg = 'Opening brace not properly indented.'
+            self.logViolation('indent.brace', lbrace, msg)
+        rbrace = self.getRCurlyBrace()
+        if not self.level.accept(rbrace):
+            msg = 'Closing brace not properly indented.'
+            self.logViolation('indent.brace', rbrace, msg)
+
+    def needsToCheckIndentation(self):
+        """Returns True if handler needs to check indentation."""
+        return not self.parent.handlesChildCurlyBraces()
 
     def shouldIncreaseIndent(self):
         return self.config.indent_statements_within_blocks
@@ -637,7 +683,7 @@ class ForStmtHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class FunctionDeclHandler(IndentSyntaxNodeHandler):
+class FunctionDeclHandler(CurlyBraceBlockHandler):
     """Handler for FunctionDecl nodes."""
 
     def checkIndentation(self):
@@ -1092,7 +1138,7 @@ class UnaryOperatorHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class UnexposedAttrHandler(IndentSyntaxNodeHandler):
+class UnexposedAttrHandler(UnexposedNodeHandler):
     """Handler for UnexposedAttr nodes.
 
     By design, this handler does nothing.
@@ -1102,7 +1148,7 @@ class UnexposedAttrHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class UnexposedDeclHandler(IndentSyntaxNodeHandler):
+class UnexposedDeclHandler(UnexposedNodeHandler):
     """Handler for UnexposedDecl nodes.
 
     By design, this handler does nothing.
@@ -1112,7 +1158,7 @@ class UnexposedDeclHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class UnexposedExprHandler(IndentSyntaxNodeHandler):
+class UnexposedExprHandler(UnexposedNodeHandler):
     """Handler for UnexposedExpr nodes.
 
     By design, this handler does nothing.
@@ -1122,7 +1168,7 @@ class UnexposedExprHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class UnexposedStmtHandler(IndentSyntaxNodeHandler):
+class UnexposedStmtHandler(UnexposedNodeHandler):
     """Handler for UnexposedStmt nodes.
 
     By design, this handler does nothing.
@@ -1160,7 +1206,7 @@ class VarDeclHandler(IndentSyntaxNodeHandler):
         pass  # Do nothing.
 
 
-class WhileStmtHandler(IndentSyntaxNodeHandler):
+class WhileStmtHandler(CurlyBraceBlockHandler):
     """Handler for WhileStmt nodes."""
 
     def checkIndentation(self):
