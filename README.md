@@ -13,6 +13,15 @@ patch bombs hard hard to review.  It is recommended to contact the authors with
 the intent of your changes.  This allows us to help you with any problems and
 will speed up incorporations of patches.
 
+Running
+-------
+
+Linty is a collection of checks and driver code to run them.  You
+write "configuration" files for it that are actual Python programs.
+For example, run the seqan style checker:
+
+    python conf/seqan/run.py -i ${include_dir} -s ${source_file}
+
 Authors
 -------
 
