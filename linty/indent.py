@@ -274,6 +274,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if not self.areOnSameLine(t, lbrace):
                 msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
+            print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
+            print 'rbrace ', rbrace.extent, rbrace.spelling
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
                 self.logViolation('indent.brace', rbrace, msg)
@@ -328,6 +330,9 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
         """Return the last closing curly brace or None."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
+        for x in token_set:
+            print x.spelling, ', ',
+        print
         for t in reversed(token_set):
             if t.kind == tk.PUNCTUATION and t.spelling == '}':
                 return t
@@ -465,6 +470,8 @@ class CompoundStmtHandler(CurlyBraceBlockHandler):
         return not self.parent.handlesChildCurlyBraces()
 
     def shouldIncreaseIndent(self):
+        if self.parent.handlesChildCurlyBraces():
+            return False
         return self.config.indent_statements_within_blocks
 
 
@@ -483,8 +490,16 @@ class ContinueStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ContinueStmt nodes."""
 
 
-class ConversionFunctionHandler(IndentSyntaxNodeHandler):
+class ConversionFunctionHandler(CurlyBraceBlockHandler):
     """Handler for ConversionFunction nodes."""
+
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        print 'CONVERSION FUNCTION CHECK CURLY'
+        self.checkCurlyBraces(self.config.brace_positions_function_declaration)
 
 
 class CstyleCastExprHandler(IndentSyntaxNodeHandler):
@@ -504,176 +519,115 @@ class CxxAccessSpecDeclHandler(IndentSyntaxNodeHandler):
 class CxxBaseSpecifierHandler(IndentSyntaxNodeHandler):
     """Handler for CxxBaseSpecifier nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxBoolLiteralExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxBoolLiteralExpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class CxxCatchStmtHandler(IndentSyntaxNodeHandler):
     """Handler for CxxCatchStmtHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxConstCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxConstCastExpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class CxxDeleteExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxDeleteExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxDynamicCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxDynamicCastExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
 
-
-class CxxForRangeStmtHandler(IndentSyntaxNodeHandler):
+class CxxForRangeStmtHandler(CurlyBraceBlockHandler):
     """Handler for CxxForRangeStmt nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxFunctionalCastExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
 
-
-class CxxMethodHandler(IndentSyntaxNodeHandler):
+class CxxMethodHandler(CurlyBraceBlockHandler):
     """Handler for CxxMethodHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_function_bodies
 
 
 class CxxNewExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxNewExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxNullPtrLiteralExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxNullPtrLiteralExpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class CxxReinterpretCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxReinterpretCastExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxStaticCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxStaticCastExpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class CxxThisExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxThisExprHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxThrowExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxThrowExprHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
 
-
-class CxxTryStmtHandler(IndentSyntaxNodeHandler):
+class CxxTryStmtHandler(CurlyBraceBlockHandler):
     """Handler for CxxTryStmtHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    ##def checkIndentation(self):
+    ##    pass
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        ##self.checkStartColumn()
+        # Check position of braces.
+        ##self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
 
 
 class CxxTypeidExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxTypeidExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class CxxUnaryExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxUnaryExprHandler nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class DeclRefExprHandler(IndentSyntaxNodeHandler):
     """Handler for DeclRefExprHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class DeclStmtHandler(IndentSyntaxNodeHandler):
     """Handler for DeclStmt nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class DefaultStmtHandler(IndentSyntaxNodeHandler):
     """Handler for DefaultStmt nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class DestructorHandler(IndentSyntaxNodeHandler):
     """Handler for Destructor nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class DoStmtHandler(IndentSyntaxNodeHandler):
     """Handler for DoStmt nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class EnumConstantDeclHandler(IndentSyntaxNodeHandler):
     """Handler for EnumConstantDecl nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class EnumDeclHandler(IndentSyntaxNodeHandler):
     """Handler for EnumDecl nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
     def shouldIncreaseIndent(self):
         return self.config.indent_inside_class_struct_body
@@ -703,8 +657,8 @@ class ForStmtHandler(IndentSyntaxNodeHandler):
 class FunctionDeclHandler(CurlyBraceBlockHandler):
     """Handler for FunctionDecl nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_function_bodies
 
 
 class FunctionTemplateHandler(IndentSyntaxNodeHandler):
