@@ -614,8 +614,11 @@ class DefaultStmtHandler(IndentSyntaxNodeHandler):
     """Handler for DefaultStmt nodes."""
 
 
-class DestructorHandler(IndentSyntaxNodeHandler):
-    """Handler for Destructor nodes."""
+class DestructorHandler(CurlyBraceBlockHandler):
+    """Handler for CxxMethodHandler nodes."""
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_function_bodies
 
 
 class DoStmtHandler(IndentSyntaxNodeHandler):
@@ -636,22 +639,16 @@ class EnumDeclHandler(IndentSyntaxNodeHandler):
 class FieldDeclHandler(IndentSyntaxNodeHandler):
     """Handler for FieldDecl nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class FloatingLiteralHandler(IndentSyntaxNodeHandler):
     """Handler for FloatingLiteralHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
 
-
-class ForStmtHandler(IndentSyntaxNodeHandler):
+class ForStmtHandler(CurlyBraceBlockHandler):
     """Handler for ForStmtHandler nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
 
 
 class FunctionDeclHandler(CurlyBraceBlockHandler):
@@ -661,36 +658,28 @@ class FunctionDeclHandler(CurlyBraceBlockHandler):
         return self.config.indent_statements_within_function_bodies
 
 
-class FunctionTemplateHandler(IndentSyntaxNodeHandler):
+class FunctionTemplateHandler(CurlyBraceBlockHandler):
     """Handler for FunctionTemplate nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_function_bodies
 
 
 class GenericSelectionExprHandler(IndentSyntaxNodeHandler):
     """Handler for GenericSelectionExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class GnuNullExprHandler(IndentSyntaxNodeHandler):
     """Handler for GnuNullExpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class GotoStmtHandler(IndentSyntaxNodeHandler):
     """Handler for GotoStmt nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class IbActionAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbActionAttr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -698,6 +687,7 @@ class IbActionAttrHandler(IndentSyntaxNodeHandler):
 
 class IbOutletAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbOutletAttr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -705,93 +695,119 @@ class IbOutletAttrHandler(IndentSyntaxNodeHandler):
 
 class IbOutletCollectionAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbOutletCollectionAttr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
 
 
-class IfStmtHandler(IndentSyntaxNodeHandler):
+class IfStmtHandler(CurlyBraceBlockHandler):
     """Handler for IfStmt nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
 
 
 class ImaginaryLiteralHandler(IndentSyntaxNodeHandler):
     """Handler for ImaginaryLiteral nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class InclusionDirectiveHandler(IndentSyntaxNodeHandler):
     """Handler for InclusionDirective nodes."""
+    # TODO(holtgrew): What's this?
 
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class IndirectGotoStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for IndirectGotoStmt nodes."""
+    # TODO(holtgrew): What's this?
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class InitListExprHandler(IndentSyntaxNodeHandler):
+    """Handler for InitListExpr nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class IntegerLiteralHandler(IndentSyntaxNodeHandler):
+    """Handler for IntegerLiteral nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class InvalidCodeHandler(IndentSyntaxNodeHandler):
+    """Handler for InvalidCode nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class InvalidFileHandler(IndentSyntaxNodeHandler):
+    """Handler for InvalidFile nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class LabelRefHandler(IndentSyntaxNodeHandler):
+    """Handler for LabelRef nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class LabelStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for LabelStmt nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class LinkageSpecHandler(IndentSyntaxNodeHandler):
+    """Handler for LinkageSpec nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class MacroDefinitionHandler(IndentSyntaxNodeHandler):
+    """Handler for MacroDefinition nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class MacroInstantiationHandler(IndentSyntaxNodeHandler):
+    """Handler for MacroInstantiation nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class MemberRefHandler(IndentSyntaxNodeHandler):
+    """Handler for MemberRef nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class MemberRefExprHandler(IndentSyntaxNodeHandler):
+    """Handler for MemberRefExpr nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class NamespaceHandler(CurlyBraceBlockHandler):
+    """Handler for NamespaceHandler nodes."""
+
     def checkIndentation(self):
         # TODO(holtgrew): Check position of first token.
         # Check position of braces.
@@ -802,216 +818,320 @@ class NamespaceHandler(CurlyBraceBlockHandler):
 
 
 class NamespaceAliasHandler(IndentSyntaxNodeHandler):
+    """Handler for NamespaceAlias nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class NamespaceRefHandler(IndentSyntaxNodeHandler):
+    """Handler for NamespaceRef nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class NotImplementedHandler(IndentSyntaxNodeHandler):
+    """Handler for NotImplemented nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class NoDeclFoundHandler(IndentSyntaxNodeHandler):
+    """Handler for NoDeclFound nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class NullStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for NullStmt nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAtCatchStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAtCatchStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAtFinallyStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAtFinallyStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAtSynchronizedStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAtSynchronizedStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAtThrowStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAtThrowStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAtTryStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAtTryStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcAutoreleasePoolStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcAutoreleasePoolStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcBridgeCastExprHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcBridgeCastExpr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcCategoryDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcCategoryDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcCategoryImplDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcCategoryImplDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcClassMethodDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcClassMethodDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcClassRefHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcClassRef nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcDynamicDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcDynamicDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcEncodeExprHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcEncodeExpr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcForCollectionStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcForCollectionStmt nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcImplementationDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcImplementationDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcInstanceMethodDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcInstanceMethodDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcInterfaceDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcInterfaceDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcIvarDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcIvarDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcMessageExprHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcMessageExpr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcPropertyDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcPropertyDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcProtocolDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcProtocolDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcProtocolExprHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcProtocolExpr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcProtocolRefHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcProtocolRef nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcSelectorExprHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcSelectorExpr nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcStringLiteralHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcStringLiteral nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcSuperClassRefHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcSuperClassRef nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ObjcSynthesizeDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ObjcSynthesizedDecl nodes."""
+    # TODO(holtgrew): Ignoring Objective-C for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class OverloadedDeclRefHandler(IndentSyntaxNodeHandler):
-    def checkIndentation(self):
-        pass  # Do nothing.
+    """Handler for OverloadedDeclRef nodes."""
 
 
 class PackExpansionExprHandler(IndentSyntaxNodeHandler):
-    def checkIndentation(self):
-        pass  # Do nothing.
+    """Handler for PackExpansionExpr nodes."""
 
 
 class ParenExprHandler(IndentSyntaxNodeHandler):
-    def checkIndentation(self):
-        pass  # Do nothing.
+    """Handler for ParenExpr nodes."""
 
 
 class ParmDeclHandler(IndentSyntaxNodeHandler):
+    """Handler for ParmDecl nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class PreprocessingDirectiveHandler(IndentSyntaxNodeHandler):
+    """Handler for PreprocessingDirective nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class ReturnStmtHandler(IndentSyntaxNodeHandler):
-    def checkIndentation(self):
-        pass  # Do nothing.
+    """Handler for ReturnStmt nodes."""
 
 
 class SehExceptStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for SehExceptStmt nodes."""
+    # TODO(holtgrew): Ignoring SEH for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class SehFinallyStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for SehFinallyStmt nodes."""
+    # TODO(holtgrew): Ignoring SEH for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class SehTryStmtHandler(IndentSyntaxNodeHandler):
+    """Handler for SehTryStmt nodes."""
+    # TODO(holtgrew): Ignoring SEH for now.
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class SizeOfPackExprHandler(IndentSyntaxNodeHandler):
+    """Handler for SizeOfPackExpr nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class StringLiteralHandler(IndentSyntaxNodeHandler):
+    """Handler for StringLiteral nodes."""
+
     def checkIndentation(self):
         pass  # Do nothing.
 
