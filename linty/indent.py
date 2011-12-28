@@ -94,9 +94,25 @@ class IndentSyntaxNodeHandler(object):
         """Return TokenSet for this node, cached in self._token_set."""
         if self._token_set:
             return self._token_set
-        extent = self.node.extent
-        translation_unit = self.node.translation_unit
-        self._token_set = ci.tokenize(translation_unit, extent)
+        tu = self.node.translation_unit
+        # TODO(holtgrew): The following workaround is only necessary because of inconsistency in libclang.
+        # Get extent data, to be fixed below.
+        start_file = self.node.extent.start.file
+        start_line = self.node.extent.start.line
+        start_column = self.node.extent.start.column
+        start = ci.SourceLocation.from_position(tu, start_file, start_line, start_column)
+        end_file = self.node.extent.end.file
+        end_line = self.node.extent.end.line
+        end_column = self.node.extent.end.column
+        # Fix extent.
+        npath, contents, lines = self.indentation_check.file_reader.readFile(start_file.name)
+        line = lines[self.node.extent.end.line - 1]
+        end_column = min(end_column, len(line.rstrip()))
+        # Build SourceRange.
+        end = ci.SourceLocation.from_position(tu, end_file, end_line, end_column)
+        extent = ci.SourceRange.from_locations(start, end)
+        # End of fixing extent.
+        self._token_set = ci.tokenize(tu, extent)
         return self._token_set
 
     # ------------------------------------------------------------------------
