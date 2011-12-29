@@ -46,6 +46,10 @@ class RuleViolation(object):
         return cmp(self.key(), other.key())
     
     def __str__(self):
+        if self.file is None:
+            msg = '[<none>:%s/%d] %s : %s' % (self.line, self.column,
+                                              self.rule_id, self.msg)
+            return msg
         msg = '[%s:%d/%d] %s : %s'
         return msg % ('/'.join(self.file.split('/')[-2:]), self.line, self.column,
                       self.rule_id, self.msg)
@@ -58,6 +62,8 @@ class NolintManager(object):
         self.locations = {}
 
     def hasNolint(self, filename, lineno):
+        if filename is None:
+            return False
         filename = os.path.abspath(filename)
         # Ensure that the nolint lines are registered in self.locations[filename].
         if not self.locations.has_key(filename):
@@ -94,6 +100,8 @@ class ViolationPrinter(object):
             violation_count += 1
             if self.ignore_nolint or not self.nolints.hasNolint(violation.file, violation.line):
                 print violation
+                if violation.file is None:
+                    continue  # Skip if no file.
                 npath, fcontents, flines = self.file_reader.readFile(violation.file)
                 line = flines[violation.line - 1]
                 if self.show_source:
