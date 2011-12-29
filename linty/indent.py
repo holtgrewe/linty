@@ -133,7 +133,10 @@ class IndentSyntaxNodeHandler(object):
 
     def logViolation(self, rule_type, node, text):
         """Log a rule violation with the given type, location, and text."""
-        v = lv.RuleViolation(rule_type, node.extent.start.file.name, node.extent.start.line,
+        file_name = None
+        if node.extent.start.file is not None:
+            file_name = node.extent.start.file.name
+        v = lv.RuleViolation(rule_type, file_name, node.extent.start.line,
                              node.extent.start.column, text)
         self.violations.add(v)
 
@@ -204,11 +207,16 @@ class IndentSyntaxNodeHandler(object):
 
     def expandedTabsColumnNo(self, node):
         """Return column of node after expanding tabs."""
+        if node.extent.start.file is None:
+            return 0
         npath, contents, lines = self.indentation_check.file_reader.readFile(node.extent.start.file.name)
         line = lines[node.extent.start.line - 1]
         return lengthExpandedTabs(line, node.extent.start.column - 1, self.indentation_check.config.tab_size)
+
     def getLineStart(self, node):
         """Return expanded column of line starts (non-whitespace char)."""
+        if node.extent.start.file is None:
+            return 0
         npath, contents, lines = self.indentation_check.file_reader.readFile(node.extent.start.file.name)
         line = lines[node.extent.start.line - 1]
         i = 0
@@ -274,8 +282,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if not self.areOnSameLine(t, lbrace):
                 msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
-            print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
-            print 'rbrace ', rbrace.extent, rbrace.spelling
+            ##print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
+            ##print 'rbrace ', rbrace.extent, rbrace.spelling
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
                 self.logViolation('indent.brace', rbrace, msg)
@@ -330,9 +338,9 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
         """Return the last closing curly brace or None."""
         tk = ci.TokenKind
         token_set = self._getTokenSet()
-        for x in token_set:
-            print x.spelling, ', ',
-        print
+        ##for x in token_set:
+        ##    print x.spelling, ', ',
+        ##print
         for t in reversed(token_set):
             if t.kind == tk.PUNCTUATION and t.spelling == '}':
                 return t
@@ -546,6 +554,9 @@ class CxxDynamicCastExprHandler(IndentSyntaxNodeHandler):
 class CxxForRangeStmtHandler(CurlyBraceBlockHandler):
     """Handler for CxxForRangeStmt nodes."""
 
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
+
 
 class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CxxFunctionalCastExpr nodes."""
@@ -624,8 +635,11 @@ class DestructorHandler(CurlyBraceBlockHandler):
         return self.config.indent_statements_within_function_bodies
 
 
-class DoStmtHandler(IndentSyntaxNodeHandler):
+class DoStmtHandler(CurlyBraceBlockHandler):
     """Handler for DoStmt nodes."""
+
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_blocks
 
 
 class EnumConstantDeclHandler(IndentSyntaxNodeHandler):
@@ -725,10 +739,6 @@ class InclusionDirectiveHandler(IndentSyntaxNodeHandler):
 
 class IndirectGotoStmtHandler(IndentSyntaxNodeHandler):
     """Handler for IndirectGotoStmt nodes."""
-    # TODO(holtgrew): What's this?
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class InitListExprHandler(IndentSyntaxNodeHandler):
@@ -740,9 +750,6 @@ class InitListExprHandler(IndentSyntaxNodeHandler):
 
 class IntegerLiteralHandler(IndentSyntaxNodeHandler):
     """Handler for IntegerLiteral nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class InvalidCodeHandler(IndentSyntaxNodeHandler):
@@ -760,7 +767,10 @@ class InvalidFileHandler(IndentSyntaxNodeHandler):
 
 
 class LabelRefHandler(IndentSyntaxNodeHandler):
-    """Handler for LabelRef nodes."""
+    """Handler for LabelRef nodes. Do nothing.
+
+    This cannot appear on the top level.
+    """
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -770,7 +780,17 @@ class LabelStmtHandler(IndentSyntaxNodeHandler):
     """Handler for LabelStmt nodes."""
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        """Make sure the label is indented correctly."""
+        if self.config.indent_labels_flush_left:
+            if not self.startsLine(self.node):
+                msg = 'Label must be first non-whitespace on line.'
+                self.logViolation('indent.generic', self.node, msg)
+            elif self.expandedTabsColumnNo(self.node) != 0:
+                msg = 'Labels should have no indentation.'
+                self.logViolation('indent.generic', self.node, msg)
+        else:
+            # Indent with the rest of the code.    
+            self.checkStartColumn()
 
 
 class LinkageSpecHandler(IndentSyntaxNodeHandler):
@@ -823,12 +843,12 @@ class NamespaceHandler(CurlyBraceBlockHandler):
 class NamespaceAliasHandler(IndentSyntaxNodeHandler):
     """Handler for NamespaceAlias nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class NamespaceRefHandler(IndentSyntaxNodeHandler):
-    """Handler for NamespaceRef nodes."""
+    """Handler for NamespaceRef nodes. Do nothing.
+
+    This cannot be a "top level" statement.
+    """
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -850,9 +870,6 @@ class NoDeclFoundHandler(IndentSyntaxNodeHandler):
 
 class NullStmtHandler(IndentSyntaxNodeHandler):
     """Handler for NullStmt nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class ObjcAtCatchStmtHandler(IndentSyntaxNodeHandler):
@@ -1072,7 +1089,13 @@ class ObjcSynthesizeDeclHandler(IndentSyntaxNodeHandler):
 
 
 class OverloadedDeclRefHandler(IndentSyntaxNodeHandler):
-    """Handler for OverloadedDeclRef nodes."""
+    """Handler for OverloadedDeclRef nodes. Does nothing.
+
+    This does occur in correct programs.
+    """
+
+    def checkIndentation(self):
+        pass  # Do nothing.
 
 
 class PackExpansionExprHandler(IndentSyntaxNodeHandler):
@@ -1378,6 +1401,8 @@ class IndentationConfig(object):
         self.indent_declarations_within_namespace_definition = False
         # Indent empty lines.  DEACTIVATED
         # self.indent_empty_lines = False
+        # Whether or not to indent labels with usual code or to flush left.
+        self.indent_labels_flush_left = True
 
         # --------------------------------------------------------------------
         # Brace Positions

@@ -319,7 +319,7 @@ class MyClass {
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 5
 
@@ -350,7 +350,7 @@ typedef int x;
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
 
@@ -566,7 +566,7 @@ class MyClass {
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 4
     assert v.column == 5
 
@@ -599,7 +599,7 @@ typedef int x;
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 4
     assert v.column == 1
 
@@ -831,7 +831,7 @@ class MyClass<int, T> {
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 6
     assert v.column == 5
 
@@ -868,7 +868,7 @@ typedef int x;
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 6
     assert v.column == 1
 
@@ -1419,15 +1419,16 @@ dynamic_cast<C *>(d);
 # Tests for the C++ for range statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Need more tests.
+# TODO(holtgrew): This is more involved, return here later.
     
-def test_cxx_for_range_stmt_indent_correct():
+def XXXtest_cxx_for_range_stmt_indent_correct():
     cpp_str = """
 #include <vector>
 
 void f() {
     std::vector<int> v;
-    for (int i : v);
+    for (int i : v)
+        continue;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -1436,13 +1437,14 @@ void f() {
     assert len(violations) == 0
 
 
-def test_cxx_for_range_stmt_indent_incorrect():
+def XXXtest_cxx_for_range_stmt_indent_incorrect():
     cpp_str = """
 #include <vector>
 
 void f() {
     std::vector<int> v;
-for (int i : v);
+for (int i : v)
+        continue;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -1452,7 +1454,7 @@ for (int i : v);
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 6
+    assert v.line == 5
     assert v.column == 1
 
 
@@ -1837,9 +1839,10 @@ void f() {
 
 # TODO(holtgrew): When is this triggered?
 
-def test_cxx_decl_ref_indent_correct():
+def test_decl_ref_indent_correct():
     cpp_str = """
 void f() {
+    f;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -1848,9 +1851,10 @@ void f() {
     assert len(violations) == 0
 
 
-def test_cxx_decl_ref_indent_incorrect():
+def test_decl_ref_indent_incorrect():
     cpp_str = """
 void f() {
+f;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -1859,7 +1863,7 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -1867,30 +1871,7 @@ void f() {
 # Tests for the default statement handler.
 # ============================================================================
 
-def test_cxx_default_stmt_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_cxx_default_stmt_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): Continue here, this is more involved.
 
 
 # ============================================================================
@@ -1962,7 +1943,7 @@ do {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -1972,8 +1953,10 @@ do {
 
 def test_enum_constant_decl_indent_correct():
     cpp_str = """
-void f() {
-}
+enum E {
+    C, D, E,
+    F, G, H
+};
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -1983,8 +1966,10 @@ void f() {
 
 def test_enum_constant_decl_indent_incorrect():
     cpp_str = """
-void f() {
-}
+enum E {
+C, D, E,
+    F, G, H
+};
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2002,10 +1987,8 @@ void f() {
 
 def test_enum_decl_indent_correct():
     cpp_str = """
-void f() {
-    enum E {
-    };
-}
+enum E {
+};
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2015,10 +1998,8 @@ void f() {
 
 def test_enum_decl_indent_incorrect():
     cpp_str = """
-void f() {
-enum E {
-};
-}
+    enum E {
+    };
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2026,8 +2007,8 @@ enum E {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+    assert v.line == 2
+    assert v.column == 5
 
 
 # ============================================================================
@@ -2124,7 +2105,7 @@ for (;;) {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -2155,7 +2136,7 @@ def test_function_decl_indent_incorrect():
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
     assert v.line == 2
-    assert v.column == 1
+    assert v.column == 5
 
 
 # ============================================================================
@@ -2187,50 +2168,24 @@ def test_function_template_indent_incorrect():
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
     assert v.line == 2
-    assert v.column == 1
+    assert v.column == 5
 
 
 # ============================================================================
 # Tests for the generic selection expression handler.
 # ============================================================================
 
-# TODO(holtgrew): How do you trigger this? _Generic?
-
-def test_generic_selection_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_generic_selection_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): Can this be even triggered outside macros? Can we see this from libclang at all?
 
 
 # ============================================================================
 # Tests for the GNU NULL expression handler.
 # ============================================================================
 
-# TODO(holtgrew): How is this triggered? __gnu_null?
-
 def test_gnu_null_expr_correct():
     cpp_str = """
 void f() {
+    __null;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2242,6 +2197,7 @@ void f() {
 def test_gnu_null_expr_indent_incorrect():
     cpp_str = """
 void f() {
+__null;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2250,7 +2206,7 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -2284,7 +2240,7 @@ my_label
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -2338,7 +2294,7 @@ if (false) {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -2351,6 +2307,7 @@ if (false) {
 def test_imaginary_literal_indent_correct():
     cpp_str = """
 void f() {
+    10i;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2362,6 +2319,7 @@ void f() {
 def test_imaginary_literal_indent_incorrect():
     cpp_str = """
 void f() {
+10i;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2370,7 +2328,7 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -2378,32 +2336,7 @@ void f() {
 # Tests for the inclusion directive handler.
 # ============================================================================
 
-# TODO(holtgrew): How to trigger this? #include? #import?
-
-def test_inclusion_directive_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_inclusion_directive_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): How do we get this out of clang?
 
 
 # ============================================================================
@@ -2415,6 +2348,8 @@ void f() {
 def test_indirect_goto_stmt_indent_correct():
     cpp_str = """
 void f() {
+    void * target = 0;
+    goto *target;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2426,6 +2361,8 @@ void f() {
 def test_indirect_goto_stmt_indent_incorrect():
     cpp_str = """
 void f() {
+    void * target = 0;
+goto *target;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2495,31 +2432,6 @@ void f() {
 
 # TODO(holtgrew): This can probably not appear by its own.
 
-def test_label_reference_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_label_reference_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
-
 
 # ============================================================================
 # Tests for the label statement handler.
@@ -2551,8 +2463,8 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+    assert v.line == 3
+    assert v.column == 5
 
 
 # ============================================================================
@@ -2560,31 +2472,7 @@ void f() {
 # ============================================================================
 
 # TODO(holtgrew): What exactly is this? >>extern "C"<<?
-
-def test_linkage_spec_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_linkage_spec_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): This is not exposed to the outside.
 
 
 # ============================================================================
@@ -2593,62 +2481,12 @@ void f() {
 
 # TODO(holtgrew): How do we get this out of clang?
 
-def test_macro_definition_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_macro_definition_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
-
 
 # ============================================================================
 # Tests for the macro instantiation handler.
 # ============================================================================
 
 # TODO(holtgrew): How do we get this out of clang?
-
-def test_macro_instantiation_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_macro_instantiation_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
 
 
 # ============================================================================
@@ -2657,7 +2495,13 @@ void f() {
 
 def test_member_reference_indent_correct():
     cpp_str = """
+struct C {
+    int i;
+};
+
 void f() {
+    C c;
+    c.i;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2668,7 +2512,13 @@ void f() {
 
 def test_member_reference_indent_incorrect():
     cpp_str = """
+struct C {
+    int i;
+};
+
 void f() {
+    C c;
+c.i;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2677,7 +2527,7 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 8
     assert v.column == 1
 
 
@@ -2714,7 +2564,7 @@ namespace myns {
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 5
 
@@ -2745,7 +2595,7 @@ typedef int x;
     # Check resulting violation.
     assert len(violations) == 1
     v = list(violations)[0]
-    assert v.rule_id == 'indent.statement'
+    assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
 
@@ -2903,8 +2753,10 @@ namespace myns
 
 def test_namespace_alias_indent_correct():
     cpp_str = """
-void f() {
-}
+namespace N {
+}  // namespace N
+
+namespace M = N;
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2914,8 +2766,10 @@ void f() {
 
 def test_namespace_alias_indent_incorrect():
     cpp_str = """
-void f() {
-}
+namespace N {
+}  // namespace N
+
+    namespace M = N;
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2923,38 +2777,15 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+    assert v.line == 5
+    assert v.column == 5
 
 
 # ============================================================================
 # Tests for the namespace reference handler.
 # ============================================================================
 
-def test_namespace_reference_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_namespace_reference_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): This cannot be a top level statement, right?
 
 
 # ============================================================================
@@ -2978,6 +2809,7 @@ void f() {
 def test_null_stmt_indent_correct():
     cpp_str = """
 void f() {
+    ;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2989,6 +2821,7 @@ void f() {
 def test_null_stmt_indent_incorrect():
     cpp_str = """
 void f() {
+;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
@@ -2997,7 +2830,7 @@ void f() {
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 4
+    assert v.line == 3
     assert v.column == 1
 
 
@@ -3167,61 +3000,15 @@ void f() {
 # Tests for the overloaded declaration handler.
 # ============================================================================
 
-def test_overloaded_decl_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_overloaded_decl_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
+# TODO(holtgrew): This does not occur in correct programs, ignoring.
 
 
 # ============================================================================
 # Tests for the pack expansion expression handler.
 # ============================================================================
 
-def test_pack_expansion_expr_indent_correct():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 0
-
-
-def test_pack_expansion_expr_indent_incorrect():
-    cpp_str = """
-void f() {
-}
-"""
-    check = li.IndentationCheck(config=li.IndentationConfig())
-    violations = lt.checkTUStr(cpp_str, ast_check=check)
-    # Check resulting violation.
-    assert len(violations) == 1
-    v = list(violations)[0]
-    assert v.rule_id == 'indent.generic'
-    assert v.line == 4
-    assert v.column == 1
-
+# TODO(holtgrew): As far as I can see, this cannot appear as a "top level" expression.
+    
 
 # ============================================================================
 # Tests for the parenthesis expression handler.
@@ -3640,7 +3427,7 @@ void f() {
     assert len(violations) == 0
 
 
-def test_cxx_delete_expr_indent_incorrect():
+def test_while_stmt_indent_incorrect():
     cpp_str = """
 void f() {
 while (true);
