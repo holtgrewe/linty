@@ -1958,7 +1958,7 @@ class Token(object):
     through which the internal libclang methods are called.
 
     It also holds a reference to its owning TokenCollection so the
-    TokenCollection object can only be freed after all referneces to all of its
+    TokenCollection object can only be freed after all references to all of its
     Tokens have been released.
     """
 
