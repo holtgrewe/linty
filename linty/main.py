@@ -221,6 +221,8 @@ class Checker(object):
         logging.info('Building index for %s.', filename)
         index = ci.Index.create()
         args = ['-I%s' % s for s in self.options.include_dirs]
+        # TODO(holtgrew): Make C++11 support configurable.
+        args += ['--std=c++11']
         translation_unit = index.parse(filename, args=args)
         logging.info('Translation unit: %s', translation_unit.spelling)
 
