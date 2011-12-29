@@ -501,6 +501,9 @@ class ConversionFunctionHandler(CurlyBraceBlockHandler):
         print 'CONVERSION FUNCTION CHECK CURLY'
         self.checkCurlyBraces(self.config.brace_positions_function_declaration)
 
+    def shouldIncreaseIndent(self):
+        return self.config.indent_statements_within_function_bodies
+
 
 class CstyleCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for CStyleCastExpr nodes."""
@@ -1081,14 +1084,16 @@ class ParenExprHandler(IndentSyntaxNodeHandler):
 
 
 class ParmDeclHandler(IndentSyntaxNodeHandler):
-    """Handler for ParmDecl nodes."""
+    """Handler for ParmDecl nodes. Do nothing."""
+    # TODO(holtgrew): Not a top-level item.
 
     def checkIndentation(self):
         pass  # Do nothing.
 
 
 class PreprocessingDirectiveHandler(IndentSyntaxNodeHandler):
-    """Handler for PreprocessingDirective nodes."""
+    """Handler for PreprocessingDirective nodes. Do nothing."""
+    # TODO(holtgrew): How to even get this out of clang?
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1125,15 +1130,9 @@ class SehTryStmtHandler(IndentSyntaxNodeHandler):
 class SizeOfPackExprHandler(IndentSyntaxNodeHandler):
     """Handler for SizeOfPackExpr nodes."""
 
-    def checkIndentation(self):
-        pass  # Do nothing.
-
 
 class StringLiteralHandler(IndentSyntaxNodeHandler):
     """Handler for StringLiteral nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class StructDeclHandler(ClassDeclHandler):
@@ -1143,35 +1142,38 @@ class StructDeclHandler(ClassDeclHandler):
     """
 
 
-class SwitchStmtHandler(IndentSyntaxNodeHandler):
+class SwitchStmtHandler(CurlyBraceBlockHandler):
     """Handler for SwitchStmt nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
     def shouldIncreaseIndent(self):
         return self.config.indent_statements_within_switch_body
 
 
 class StmtexprHandler(IndentSyntaxNodeHandler):
-    """Handler for Stmtexpr nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
+    """Handler for Stmtexpr nodes. Do nothing."""
+    # TODO(holtgrew): This is a GNU extension skelleton from the closet. Ignore for now.
 
 
 class TemplateNonTypeParameterHandler(IndentSyntaxNodeHandler):
-    """Handler for TemplateNonTypeParameter nodes."""
+    """Handler for TemplateNonTypeParameter nodes.
+
+    Cannot appear at the beginning of lines, thus we need no indentation
+    checking here."""
+    # TODO(holtgrew): We could also mark this using a QuietSyntaxNodeHandler that has an empty checkIndentation() implementation.
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        pass  # Do nothing by design.
 
 
 class TemplateRefHandler(IndentSyntaxNodeHandler):
-    """Handler for TemplateRef nodes."""
+    """Handler for TemplateRef nodes.
+
+    Cannot appear at the beginning of lines, thus we need no indentation
+    checking here."""
+    # TODO(holtgrew): We could also mark this using a QuietSyntaxNodeHandler that has an empty checkIndentation() implementation.
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        pass  # Do nothing by design.
 
 
 class TemplateTemplateParameterHandler(IndentSyntaxNodeHandler):
@@ -1182,30 +1184,29 @@ class TemplateTemplateParameterHandler(IndentSyntaxNodeHandler):
 
 
 class TemplateTypeParameterHandler(IndentSyntaxNodeHandler):
-    """Handler for TemplateTypeParameter nodes."""
+    """Handler for TemplateTypeParameter nodes.
+
+    Cannot appear at the beginning of lines, thus we need no indentation
+    checking here."""
+    # TODO(holtgrew): We could also mark this using a QuietSyntaxNodeHandler that has an empty checkIndentation() implementation.
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        pass  # Do nothing by design.
 
 
 class TranslationUnitHandler(IndentSyntaxNodeHandler):
-    """Handler for TranslationUnit nodes."""
+    """Handler for TranslationUnit nodes.
+
+    Cannot appear at the beginning of lines, thus we need no indentation
+    checking here."""
+    # TODO(holtgrew): We could also mark this using a QuietSyntaxNodeHandler that has an empty checkIndentation() implementation.
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        pass  # Do nothing by design.
 
 
 class TypedefDeclHandler(IndentSyntaxNodeHandler):
     """Handler for TypedefDecl nodes."""
-
-    def checkIndentation(self):
-        """Check indentation of typedef declaration."""
-        # TODO(holtgrew): Currently, only checking for the indentation of the first token is implemented. Implement more!
-        ##print 'CHECK INDENTATION', self.level, self.expandedTabsColumnNo(self.node)
-        if not self.level.accept(self.expandedTabsColumnNo(self.node)):
-            # This indentation level is not valid.
-            self.logViolation('indent.statement', self.node,
-                              'Invalid indentation level.')
 
 
 class TypeAliasDeclHandler(IndentSyntaxNodeHandler):
@@ -1216,17 +1217,18 @@ class TypeAliasDeclHandler(IndentSyntaxNodeHandler):
 
 
 class TypeRefHandler(IndentSyntaxNodeHandler):
-    """Handler for TypeRef nodes."""
+    """Handler for TypeRef nodes.
+
+    Cannot appear at the beginning of lines, thus we need no indentation
+    checking here."""
+    # TODO(holtgrew): We could also mark this using a QuietSyntaxNodeHandler that has an empty checkIndentation() implementation.
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        pass  # Do nothing by design.
 
 
 class UnaryOperatorHandler(IndentSyntaxNodeHandler):
     """Handler for UnaryOperator nodes."""
-
-    def checkIndentation(self):
-        pass  # Do nothing.
 
 
 class UnexposedAttrHandler(UnexposedNodeHandler):
@@ -1269,11 +1271,11 @@ class UnexposedStmtHandler(UnexposedNodeHandler):
         pass  # Do nothing.
 
 
-class UnionDeclHandler(IndentSyntaxNodeHandler):
-    """Handler for UnionDecl nodes."""
+class UnionDeclHandler(ClassDeclHandler):
+    """The handler for struct declarations is the same as for classes.
 
-    def checkIndentation(self):
-        pass  # Do nothing.
+    Subclassing is (mis-)used as quasi-aliasing here.
+    """
 
 
 class UsingDeclarationHandler(IndentSyntaxNodeHandler):
