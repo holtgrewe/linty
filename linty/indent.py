@@ -859,7 +859,8 @@ class NamespaceHandler(CurlyBraceBlockHandler):
     """Handler for NamespaceHandler nodes."""
 
     def checkIndentation(self):
-        # TODO(holtgrew): Check position of first token.
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_namespace_declaration)
 

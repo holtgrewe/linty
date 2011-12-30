@@ -2535,8 +2535,40 @@ c.i;
 # Tests for the namespace indent handler.
 # ============================================================================
 
-# TODO(holtgrew): Indentation of first token.
 # TODO(holtgrew): Closing comment.
+
+def test_namespace_indent_correct():
+    cpp_str = """
+namespace myns {
+    namespace myns2 {
+    }  // namespace myns2
+}  // namespace myns
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_declarations_within_namespace_definition=True
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    assert len(violations) == 0
+
+
+def test_namespace_indent_incorrect():
+    cpp_str = """
+namespace myns {
+namespace myns {
+}
+}  // namespace myns
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_declarations_within_namespace_definition=True
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
 
 def test_namespace_indent_declaration_false_correct():
     cpp_str = """
@@ -3415,6 +3447,8 @@ int x;
 # Tests for the while statement handler.
 # ============================================================================
 
+# Tests for the while statement itself.
+
 def test_while_stmt_indent_correct():
     cpp_str = """
 void f() {
@@ -3441,3 +3475,467 @@ while (true);
     assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
+
+
+# Tests for the indentation below the while statement without braces.
+
+def test_while_stmt_indent_below_nobrace_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_nobrace_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+      continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 7
+
+
+# Tests for the indentation below the while statement with braces.
+
+def test_while_stmt_indent_below_braces_correct():
+    cpp_str = """
+void f() {
+    while (true) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_braces_incorrect():
+    cpp_str = """
+void f() {
+    while (true) {
+      continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 7
+
+
+# Tests for the indentation below the while statement without braces with
+# different block indent settings.
+
+def test_while_stmt_indent_below_nobrace_indent_blocks_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_nobrace_indent_blocks_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+      continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 7
+
+
+def test_while_stmt_indent_below_nobrace_noindent_blocks_correct():
+    cpp_str = """
+void f() {
+    while (true)
+    continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_nobrace_noindent_blocks_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+        continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 9
+
+
+# Tests for the indentation below the while statement with braces with different
+# block settings with 'next-line' and 'next-line-indent' brace positions.
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_same_line_correct():
+    cpp_str = """
+void f() {
+    while (true) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_same_line_incorrect():
+    cpp_str = """
+void f() {
+    while (true) {
+    continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 7
+
+
+def test_while_stmt_indent_below_braces_noindent_blocks_brace_same_line_correct():
+    cpp_str = """
+void f() {
+    while (true) {
+    continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_same_line_incorrect():
+    cpp_str = """
+void f() {
+    while (true) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+            continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+        continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 9
+
+
+def test_while_stmt_indent_below_braces_noindent_blocks_brace_next_line_indent_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+        continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_incorrect():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+            continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 13
+
+
+# Tests for the placement of the braces.
+
+def test_while_stmt_brace_position_same_line_correct():
+    cpp_str = """
+void f() {
+    while (true) {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_brace_position_same_line_incorrect_opening_brace():
+    cpp_str = """
+void f() {
+    while (true)
+    {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_while_stmt_brace_position_same_line_incorrect_closing_brace():
+    cpp_str = """
+void f() {
+    while (true) {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_while_stmt_brace_position_next_line_correct():
+    cpp_str = """
+void f() {
+    while (true)
+    {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_brace_position_next_line_incorrect_opening_brace():
+    cpp_str = """
+void f() {
+    while (true) {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 3
+    assert v.column == 18
+
+
+def test_while_stmt_brace_position_next_line_incorrect_closing_brace():
+    cpp_str = """
+void f() {
+    while (true)
+    {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 5
+    assert v.column == 9
+
+
+def test_while_stmt_brace_position_next_line_indent_correct():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_while_stmt_brace_position_next_line_indent_incorrect_opening_brace():
+    cpp_str = """
+void f() {
+    while (true)
+    {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_while_stmt_brace_position_next_line_indent_incorrect_closing_brace():
+    cpp_str = """
+void f() {
+    while (true)
+        {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 5
+    assert v.column == 5
+
+
