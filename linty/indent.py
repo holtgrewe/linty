@@ -17,7 +17,6 @@ import clang.cindex as ci
 # Global Indentation Related Code
 # ============================================================================
 
-
 def lengthExpandedTabs(s, to_idx, tab_width):
     l = 0
     for i in range(0, to_idx):
@@ -658,6 +657,141 @@ class DestructorHandler(CurlyBraceBlockHandler):
 
 class DoStmtHandler(CurlyBraceBlockHandler):
     """Handler for DoStmt nodes."""
+
+    # Do/While statements are fairly simple:
+    #
+    # do
+    #     <statement>
+    # while (<expression>)
+    #
+    # Each DoStmt node has exactly two children: The first for <statement>, the
+    # second for <expression>.  The token left of <expression> must be a closing
+    # round brace, the token left of that brace must be the 'while' keyword.
+    # Left of the '<while>', there is the closing curly brace if <statement> is
+    # a compound statement.  The token right of the 'do' is an opening curly
+    # brace if <statement> is a compound statement.
+    #
+    # We interpret the 'brace_positions_blocks' setting for determining the
+    # position of the do and while relative to the curly braces.  The brace
+    # indentation itself is computed from this setting as well.  The main
+    # distinction to make for the position checking is whether the first child
+    # is a compound statement.
+
+    def checkIndentation(self):
+        # TODO(holtgrew): Remove this workaround once the bug is out of libclang.
+        # Workaround for http://llvm.org/bugs/show_bug.cgi?id=11679 in clang.
+        if self.node.data[0] is None:
+            self.node = ci.Cursor.from_location(self.node.translation_unit, self.node.location)
+
+        # Get tokens of do/while keywords first.
+        stmt_tokens = self._getTokenSet()
+        stmt_tokens.annotate()
+        assert stmt_tokens[0].spelling == 'do', 'First token must be do token.'
+        do_token = stmt_tokens[0]
+        while_token = None
+        ##print >>sys.stderr, 'self.node', '\t', '\t', '\t\t\t\t\t\t', '\t', self.node.kind, '\t', self.node.spelling, '\t', self.node.location, '\t', self.node == self.node
+        ##print >>sys.stderr, '    data\t', self.node.data[0], '\t', self.node.data[1], '\t', self.node.data[2], '\txdata\t', self.node.xdata
+        for i, t in enumerate(stmt_tokens):
+            ##print >>sys.stderr, 'i==%d' % i, '\t', t.spelling, '\t', t.location, '\t', stmt_tokens.get_cursor(i).kind, '\t', stmt_tokens.get_cursor(i).spelling, '\t', stmt_tokens.get_cursor(i).location, '\t', stmt_tokens.get_cursor(i) == self.node
+            c = stmt_tokens.get_cursor(i)
+            ##print >>sys.stderr, '    data\t', c.data[0], '\t', c.data[1], '\t', c.data[2], '\txdata\t', c.xdata
+            if t.spelling == 'while' and stmt_tokens.get_cursor(i) == self.node:
+                while_token = t
+                break
+        assert while_token is not None, 'Must find while token.'
+        # Then, decide whether we have a compound statement as the first child.
+        ck = ci.CursorKind
+        children = [x for x in self.node.get_children()]
+        assert len(children) == 2, 'A do-while statement has two children.'
+        has_compound_stmt = (children[0].kind == ck.COMPOUND_STMT)
+        if has_compound_stmt:
+            # Check brace positions and position of the while if we have a
+            # compound statement.
+            compound_tokens = self._getTokenSetForNode(children[0])
+            lbrace = compound_tokens[0]
+            assert lbrace.spelling == '{'
+            ##for x in compound_tokens:
+            ##    print x.spelling
+            rbrace = compound_tokens[-1]
+            assert rbrace.spelling == '}'
+            # Check indentation of "do" keyword.
+            if not self.level.accept(self.expandedTabsColumnNo(do_token)):
+                msg = 'Keyword "do" must be properly indented.'
+                self.logViolation('indent.generic', do_token, msg)
+            if self.config.brace_positions_blocks != 'same-line':
+                # Check indentation of "while" keyword.
+                if self.expandedTabsColumnNo(while_token) != self.expandedTabsColumnNo(do_token):
+                    msg = 'Keyword "while" must have same indentation as "do".'
+                    self.logViolation('indent.generic', while_token, msg)
+                # Check that opening curly brace and "do" are on adjacent lines.
+                if do_token.location.line + 1 != lbrace.location.line:
+                    msg = 'Keyword "do" must be on the line before opening curly brace.'
+                    self.logViolation('indent.generic', do_token, msg)
+                # Check that closing curly brace and "while" are on adjacent lines.
+                if while_token.location.line != rbrace.location.line + 1:
+                    msg = 'Keyword "while" must be on the line after the closing curly brace.'
+                    self.logViolation('indent.generic', while_token, msg)
+                # Check that the closing curly brace is on the same column as
+                # the opening curly brace.
+                if self.expandedTabsColumnNo(rbrace) != self.expandedTabsColumnNo(lbrace):
+                    msg = 'Closing curly brace must have the same indentation as the opening curl brace.'
+                    self.logViolation('indent.brace', rbrace, msg)
+                # Check indentation of the left curly brace.
+                if self.config.brace_positions_blocks == 'next-line':
+                    if not self.level.accept(self.expandedTabsColumnNo(lbrace)):
+                        msg = 'Opening curly brace is on wrong level. Expected one of %s.' % self.level
+                        self.logViolation('indent.brace', lbrace, msg)
+                else:
+                    assert self.config.brace_positions_blocks == 'next-line-indent'
+                    next_level = IndentLevel(base=self.level, offset=self.config.indentation_size)
+                    if not next_level.accept(self.expandedTabsColumnNo(lbrace)):
+                        msg = 'Opening curly brace is on wrong level. Expected one of %s.' % next_level
+                        self.logViolation('indent.brace', lbrace, msg)
+            else:  # self.config.brace_position_blocks == 'same-line'
+                # Check that opening curly brace and "do" are on the same line.
+                if do_token.location.line != lbrace.location.line:
+                    msg = 'Keyword "do" must be on the same line as the opening curly brace.'
+                    self.logViolation('indent.generic', do_token, msg)
+                # Check that closing curly brace and "while" are on the same line.
+                if while_token.location.line != rbrace.location.line:
+                    msg = 'Keyword "while" must be on the same line as the closing curly brace.'
+                    self.logViolation('indent.generic', while_token, msg)
+                # Check that the closing curly brace and "do" are on the same column.
+                if self.expandedTabsColumnNo(rbrace) != self.expandedTabsColumnNo(do_token):
+                    msg = 'Closing curly brace must have the same indentation as the "do" keyword.'
+                    self.logViolation('indent.brace', rbrace, msg)
+        else:
+            # Check indent of do/while only if we don't have compound
+            # statements.
+            if not self.level.accept(self.expandedTabsColumnNo(do_token)):
+                msg = 'Keyword "do" must be properly indented.'
+                self.logViolation('indent.generic', do_token, msg)
+            if self.expandedTabsColumnNo(while_token) != self.expandedTabsColumnNo(do_token):
+                msg = 'Keyword "while" must have same indentation as "do".'
+                self.logViolation('indent.generic', while_token, msg)
+
+    def _getTokenSetForNode(self, node):
+        """Return TokenSet for node, no caching."""
+        tu = node.translation_unit
+        # TODO(holtgrew): The following workaround is only necessary because of inconsistency in libclang.
+        # Get extent data, to be fixed below.
+        start_file = node.extent.start.file
+        start_line = node.extent.start.line
+        start_column = node.extent.start.column
+        start = ci.SourceLocation.from_position(tu, start_file, start_line, start_column)
+        end_file = node.extent.end.file
+        end_line = node.extent.end.line
+        end_column = node.extent.end.column
+        # Fix extent.
+        npath, contents, lines = self.indentation_check.file_reader.readFile(start_file.name)
+        line = lines[node.extent.end.line - 1]
+        end_column = min(end_column, len(line.rstrip()))
+        end_column = max(0, end_column - 1)
+        # Build SourceRange.
+        end = ci.SourceLocation.from_position(tu, end_file, end_line, end_column)
+        extent = ci.SourceRange.from_locations(start, end)
+        # End of fixing extent.
+        return ci.tokenize(tu, extent)
 
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
