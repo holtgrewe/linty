@@ -260,7 +260,7 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
     def handlesChildCurlyBraces(self):
         """Return True."""
         return True
-    
+
     def checkCurlyBraces(self, indent_type):
         """Check curly braces of the block.
 
@@ -471,13 +471,17 @@ class CompoundStmtHandler(CurlyBraceBlockHandler):
             return  # Skip checking
 
         lbrace = self.getLCurlyBrace()
-        if not self.level.accept(lbrace):
-            msg = 'Opening brace not properly indented.'
+        if not self.level.accept(self.expandedTabsColumnNo(lbrace)):
+            msg = 'Opening brace not properly indented. Expecting one of %s.' % self.level
             self.logViolation('indent.brace', lbrace, msg)
         rbrace = self.getRCurlyBrace()
-        if not self.level.accept(rbrace):
-            msg = 'Closing brace not properly indented.'
+        if self.expandedTabsColumnNo(lbrace) != self.expandedTabsColumnNo(rbrace):
+            msg = 'Closing brace must be on the same column as opening brace.'
             self.logViolation('indent.brace', rbrace, msg)
+
+    def handlesChildCurlyBraces(self):
+        """Return False."""
+        return False
 
     def needsToCheckIndentation(self):
         """Returns True if handler needs to check indentation."""
@@ -485,7 +489,9 @@ class CompoundStmtHandler(CurlyBraceBlockHandler):
 
     def additionalIndentLevels(self):
         if self.parent.handlesChildCurlyBraces():
+            ##print >>sys.stderr, 'COMPOUND', 0
             return 0
+        ##print >>sys.stderr, 'COMPOUND', int(self.config.indent_statements_within_blocks)
         return int(self.config.indent_statements_within_blocks)
 
 
@@ -816,7 +822,7 @@ class LabelStmtHandler(IndentSyntaxNodeHandler):
                 msg = 'Labels should have no indentation.'
                 self.logViolation('indent.generic', self.node, msg)
         else:
-            # Indent with the rest of the code.    
+            # Indent with the rest of the code.
             self.checkStartColumn()
 
 

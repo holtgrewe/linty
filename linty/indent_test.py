@@ -1048,6 +1048,117 @@ class MyClass<int, T>
 
 
 # ============================================================================
+# Tests for the compound statement handler.
+# ============================================================================
+
+# Tests of the compound statement's braces itself.
+
+def test_compound_stmt_indent_correct():
+    cpp_str = """
+void f() {
+    {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_compound_stmt_indent_incorrect():
+    cpp_str = """
+void f() {
+{
+}
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# Tests for indentation below the compound statement with different indent
+# settings for blocks.
+
+def test_compound_stmt_indent_below_indent_blocks_correct():
+    cpp_str = """
+void f() {
+    {
+        int i = 0;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_compound_stmt_indent_below_indent_blocks_incorrect():
+    cpp_str = """
+void f() {
+    {
+    int i = 0;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_compound_stmt_indent_below_noindent_blocks_correct():
+    cpp_str = """
+void f() {
+    {
+    int i = 0;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_compound_stmt_indent_below_noindent_blocks_incorrect():
+    cpp_str = """
+void f() {
+    {
+        int i = 0;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 9
+
+
+# ============================================================================
 # Tests for the compound assignment operator handler.
 # ============================================================================
 
@@ -1420,7 +1531,7 @@ dynamic_cast<C *>(d);
 # ============================================================================
 
 # TODO(holtgrew): This is more involved, return here later.
-    
+
 def XXXtest_cxx_for_range_stmt_indent_correct():
     cpp_str = """
 #include <vector>
@@ -1879,7 +1990,7 @@ f;
 # ============================================================================
 
 # TODO(holtgrew): More involved tests for destructors.
-    
+
 def test_destructor_indent_correct():
     cpp_str = """
 class C {
@@ -2438,7 +2549,7 @@ void f() {
 # ============================================================================
 
 # TODO(holtgrew): We probably need configuration for whether to indent or unindent this.
-    
+
 def test_label_stmt_indent_correct():
     cpp_str = """
 void f() {
@@ -3040,7 +3151,7 @@ void f() {
 # ============================================================================
 
 # TODO(holtgrew): As far as I can see, this cannot appear as a "top level" expression.
-    
+
 
 # ============================================================================
 # Tests for the parenthesis expression handler.
