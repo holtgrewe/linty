@@ -607,7 +607,7 @@ CursorKind.ADDR_LABEL_EXPR = CursorKind(120)
 # This is the GNU Statement Expression extension: ({int X=4; X;})
 CursorKind.StmtExpr = CursorKind(121)
 
-# Represents a C1X generic selection.
+# Represents a C11 generic selection.
 CursorKind.GENERIC_SELECTION_EXPR = CursorKind(122)
 
 # Implements the GNU __null extension, which is a name for a null
@@ -2059,6 +2059,6 @@ _clang_disposeTokens.argtypes = [TranslationUnit, POINTER(TokenImpl), c_uint]
 
 ###
 
-__all__ = ['Index', 'TranslationUnit', 'Cursor', 'CursorKind', 'Type', 'TokenKind',
+__all__ = ['Index', 'TranslationUnit', 'Cursor', 'CursorKind', 'Type', 'TypeKind',
            'Diagnostic', 'FixIt', 'CodeCompletionResults', 'SourceRange',
            'SourceLocation', 'File', 'Token', 'TokenKind']
