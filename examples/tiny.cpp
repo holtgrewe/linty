@@ -1,14 +1,30 @@
-template <typename T>
-struct Identity
-{
-    typedef T Type;
+void f() {
+    while (true) {
+        int i = 0;
+    }
+}
+
+namespace S {
+}  // namespace S
+
+enum E {
+    EA, EB, EC
 };
 
-const unsigned int & bar() { return 5; }
+/*
+struct C {
+    int i;
+};
 
-const inline Identity<int>::Type &
-foo(int y = bar())
-{
-    static int i = 0;
-    return i;
+void f() {
+    C c;
+    c.i;
 }
+
+extern "C" {
+    int  atoi( char *string );
+    long atol( char *string );
+}
+
+extern "C" int  atoi2( char *string );
+*/

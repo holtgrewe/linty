@@ -126,10 +126,9 @@ class IndentSyntaxNodeHandler(object):
 
     def suggestedChildLevel(self, indent_syntax_node_handler):
         """Return suggested level for children."""
-        if self.shouldIncreaseIndent():
-            return IndentLevel(base=self.level, offset=self.config.indentation_size)
-        else:
-            return IndentLevel(base=self.level, offset=0)
+        additional_offset = self.config.indentation_size * self.additionalIndentLevels()
+        ##print 'SUGGESTED CHILD LEVEL', self, additional_offset, 'level=', self.level
+        return IndentLevel(base=self.level, offset=additional_offset)
 
     def logViolation(self, rule_type, node, text):
         """Log a rule violation with the given type, location, and text."""
@@ -140,13 +139,12 @@ class IndentSyntaxNodeHandler(object):
                              node.extent.start.column, text)
         self.violations.add(v)
 
-    def shouldIncreaseIndent(self):
-        """Returns true if children should have an increased indent level.
+    def additionalIndentLevels(self):
+        """Returns number of levels to increase the indent by.
 
-        Override this function to change the default behaviour of returning
-        False.
+        Override this function to change the default behaviour of returning 0.
         """
-        return False
+        return 0
 
     # ------------------------------------------------------------------------
     # Indentation Checking-Related
@@ -283,6 +281,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
                 msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
             ##print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
+            ##print 't      ', t.extent, t.spelling
+            ##print 'lbrace ', rbrace.extent, rbrace.spelling
             ##print 'rbrace ', rbrace.extent, rbrace.spelling
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
@@ -406,8 +406,10 @@ class ClassDeclHandler(CurlyBraceBlockHandler):
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_inside_class_struct_body
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_class_struct_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_inside_class_struct_body)
+        return i1 + i2
 
 
 class ClassTemplateHandler(CurlyBraceBlockHandler):
@@ -423,8 +425,10 @@ class ClassTemplateHandler(CurlyBraceBlockHandler):
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_inside_class_struct_body
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_class_struct_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_inside_class_struct_body)
+        return i1 + i2
 
 
 class ClassTemplatePartialSpecializationHandler(CurlyBraceBlockHandler):
@@ -440,8 +444,10 @@ class ClassTemplatePartialSpecializationHandler(CurlyBraceBlockHandler):
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_inside_class_struct_body
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_class_struct_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_inside_class_struct_body)
+        return i1 + i2
 
 
 class CompoundAssignmentOperatorHandler(IndentSyntaxNodeHandler):
@@ -477,10 +483,10 @@ class CompoundStmtHandler(CurlyBraceBlockHandler):
         """Returns True if handler needs to check indentation."""
         return not self.parent.handlesChildCurlyBraces()
 
-    def shouldIncreaseIndent(self):
+    def additionalIndentLevels(self):
         if self.parent.handlesChildCurlyBraces():
-            return False
-        return self.config.indent_statements_within_blocks
+            return 0
+        return int(self.config.indent_statements_within_blocks)
 
 
 class ConditionalOperatorHandler(IndentSyntaxNodeHandler):
@@ -506,11 +512,12 @@ class ConversionFunctionHandler(CurlyBraceBlockHandler):
         # Check the start column of the class declaration.
         self.checkStartColumn()
         # Check position of braces.
-        print 'CONVERSION FUNCTION CHECK CURLY'
         self.checkCurlyBraces(self.config.brace_positions_function_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_function_bodies
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class CstyleCastExprHandler(IndentSyntaxNodeHandler):
@@ -554,8 +561,10 @@ class CxxDynamicCastExprHandler(IndentSyntaxNodeHandler):
 class CxxForRangeStmtHandler(CurlyBraceBlockHandler):
     """Handler for CxxForRangeStmt nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_blocks
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
@@ -565,8 +574,10 @@ class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
 class CxxMethodHandler(CurlyBraceBlockHandler):
     """Handler for CxxMethodHandler nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_function_bodies
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class CxxNewExprHandler(IndentSyntaxNodeHandler):
@@ -604,8 +615,10 @@ class CxxTryStmtHandler(CurlyBraceBlockHandler):
         # Check position of braces.
         ##self.checkCurlyBraces(self.config.brace_positions_class_struct_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_blocks
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class CxxTypeidExprHandler(IndentSyntaxNodeHandler):
@@ -631,15 +644,19 @@ class DefaultStmtHandler(IndentSyntaxNodeHandler):
 class DestructorHandler(CurlyBraceBlockHandler):
     """Handler for CxxMethodHandler nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_function_bodies
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class DoStmtHandler(CurlyBraceBlockHandler):
     """Handler for DoStmt nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_blocks
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class EnumConstantDeclHandler(IndentSyntaxNodeHandler):
@@ -649,8 +666,10 @@ class EnumConstantDeclHandler(IndentSyntaxNodeHandler):
 class EnumDeclHandler(IndentSyntaxNodeHandler):
     """Handler for EnumDecl nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_inside_class_struct_body
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_class_struct_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_inside_class_struct_body)
+        return i1 + i2
 
 
 class FieldDeclHandler(IndentSyntaxNodeHandler):
@@ -664,22 +683,28 @@ class FloatingLiteralHandler(IndentSyntaxNodeHandler):
 class ForStmtHandler(CurlyBraceBlockHandler):
     """Handler for ForStmtHandler nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_blocks
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class FunctionDeclHandler(CurlyBraceBlockHandler):
     """Handler for FunctionDecl nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_function_bodies
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class FunctionTemplateHandler(CurlyBraceBlockHandler):
     """Handler for FunctionTemplate nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_function_bodies
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class GenericSelectionExprHandler(IndentSyntaxNodeHandler):
@@ -721,8 +746,10 @@ class IbOutletCollectionAttrHandler(IndentSyntaxNodeHandler):
 class IfStmtHandler(CurlyBraceBlockHandler):
     """Handler for IfStmt nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_blocks
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class ImaginaryLiteralHandler(IndentSyntaxNodeHandler):
@@ -836,8 +863,11 @@ class NamespaceHandler(CurlyBraceBlockHandler):
         # Check position of braces.
         self.checkCurlyBraces(self.config.brace_positions_namespace_declaration)
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_declarations_within_namespace_definition
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_namespace_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_declarations_within_namespace_definition)
+        ##print >>sys.stderr, 'NAMESPACE HANDLER i1=', i1, ', i2=', i2
+        return i1 + i2
 
 
 class NamespaceAliasHandler(IndentSyntaxNodeHandler):
@@ -1168,8 +1198,10 @@ class StructDeclHandler(ClassDeclHandler):
 class SwitchStmtHandler(CurlyBraceBlockHandler):
     """Handler for SwitchStmt nodes."""
 
-    def shouldIncreaseIndent(self):
-        return self.config.indent_statements_within_switch_body
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 class StmtexprHandler(IndentSyntaxNodeHandler):
@@ -1325,9 +1357,17 @@ class VarDeclHandler(IndentSyntaxNodeHandler):
 class WhileStmtHandler(CurlyBraceBlockHandler):
     """Handler for WhileStmt nodes."""
 
-    def shouldIncreaseIndent(self):
-        """Returns True."""
-        return True
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_blocks)
+
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_blocks)
+        return i1 + i2
 
 
 # ============================================================================
