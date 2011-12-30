@@ -932,7 +932,7 @@ class Cursor(Structure):
     @property
     def translation_unit(self):
         if not hasattr(self, '_translation_unit'):
-            self._translation_unit = TranslationUnit(Cursor_getTranslationUnit(self))
+            self._translation_unit = TranslationUnit(Cursor_getTranslationUnit(self), is_owner=False)
         return self._translation_unit
 
     def get_children(self):
@@ -1433,11 +1433,13 @@ class TranslationUnit(ClangObject):
     provides read-only access to its top-level declarations.
     """
 
-    def __init__(self, ptr):
+    def __init__(self, ptr, is_owner=True):
+        self._is_owner = is_owner
         ClangObject.__init__(self, ptr)
 
     def __del__(self):
-        TranslationUnit_dispose(self)
+        if self._is_owner:
+            TranslationUnit_dispose(self)
 
     @property
     def cursor(self):
