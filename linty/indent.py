@@ -686,6 +686,8 @@ class DoStmtHandler(CurlyBraceBlockHandler):
         # Get tokens of do/while keywords first.
         stmt_tokens = self._getTokenSet()
         stmt_tokens.annotate()
+        ##print [(x.spelling, x.kind) for x in stmt_tokens]
+        ##import pdb;  pdb.set_trace()
         assert stmt_tokens[0].spelling == 'do', 'First token must be do token.'
         do_token = stmt_tokens[0]
         while_token = None

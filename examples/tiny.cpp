@@ -1,30 +1,11 @@
-void f() {
-    while (true) {
-        int i = 0;
-    }
+void f(int x, int y, double c) {
+    int i = 0;
+    do {
+        ++i;
+    } while (i < 1);
+
+    /*    do
+        ++i;
+    while (i < 10);
+    */
 }
-
-namespace S {
-}  // namespace S
-
-enum E {
-    EA, EB, EC
-};
-
-/*
-struct C {
-    int i;
-};
-
-void f() {
-    C c;
-    c.i;
-}
-
-extern "C" {
-    int  atoi( char *string );
-    long atol( char *string );
-}
-
-extern "C" int  atoi2( char *string );
-*/
