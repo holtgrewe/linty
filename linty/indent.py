@@ -364,8 +364,6 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
 # Handlers For AST Nodes
 # ============================================================================
 
-# TODO(holtgrew): Checks for more complex structure.
-
 class AddrLabelExprHandler(IndentSyntaxNodeHandler):
     """Handler for AddrLabelExpr nodes."""
     # TODO(holtgrew): Decide what to do with this.
@@ -602,6 +600,13 @@ class CxxFunctionalCastExprHandler(IndentSyntaxNodeHandler):
 
 class CxxMethodHandler(CurlyBraceBlockHandler):
     """Handler for CxxMethodHandler nodes."""
+
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_function_declaration)
 
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
