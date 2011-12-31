@@ -78,6 +78,20 @@ class IndentSyntaxNodeHandler(object):
         self.level = self._getLevelImpl()
         self.violations = indentation_check.violations
         self._token_set = None
+        self._node_children = None
+
+    def allowCheckChild(self, node):
+        """Returns True if we allow checking this node. Overwrite this.
+
+        Returns True.
+        """
+        return True
+
+    @property
+    def node_children(self):
+        if not self._node_children:
+            self._node_children = list(self.node.get_children())
+        return self._node_children
 
     # ------------------------------------------------------------------------
     # Token Retrieval Related.
@@ -275,23 +289,23 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             assert rbrace is None
             assert t is None
             return
+        ##print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
+        ##print 't      ', t.extent, t.spelling
+        ##print 'lbrace ', lbrace.extent, lbrace.spelling
+        ##print 'rbrace ', rbrace.extent, rbrace.spelling
         if indent_type == 'same-line':
             if not self.areOnSameLine(t, lbrace):
                 msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
-            ##print 'fst    ', self.getFirstToken().extent, self.getFirstToken().spelling
-            ##print 't      ', t.extent, t.spelling
-            ##print 'lbrace ', rbrace.extent, rbrace.spelling
-            ##print 'rbrace ', rbrace.extent, rbrace.spelling
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
                 self.logViolation('indent.brace', rbrace, msg)
         elif indent_type == 'next-line':
-            if not self.areOnSameColumn(self.getFirstToken(), lbrace):
-                msg = 'Opening brace should be on the same column as block start.'
-                self.logViolation('indent.brace', lbrace, msg)
-            if t.extent.start.line == lbrace.extent.start.line + 1:
+            if t.extent.start.line + 1 != lbrace.extent.start.line:
                 msg = 'Opening brace should be on the line directly after block start.'
+                self.logViolation('indent.brace', lbrace, msg)
+            elif not self.areOnSameColumn(self.getFirstToken(), lbrace):
+                msg = 'Opening brace should be on the same column as block start.'
                 self.logViolation('indent.brace', lbrace, msg)
             if not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
@@ -309,8 +323,8 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if not next_level.accept(self.expandedTabsColumnNo(lbrace)):
                 msg = 'Opening brace should be indented one level further than block start.'
                 self.logViolation('indent.brace', lbrace, msg)
-            if not next_level.accept(self.expandedTabsColumnNo(rbrace)):
-                msg = 'Closing brace should be indented one level further than block start.'
+            elif not self.expandedTabsColumnNo(lbrace) == self.expandedTabsColumnNo(rbrace):
+                msg = 'Closing brace should be on the same column as opening brace.'
                 self.logViolation('indent.brace', rbrace, msg)
 
     def getTokenLeftOfLeftLCurlyBrace(self):
@@ -565,6 +579,16 @@ class CxxDynamicCastExprHandler(IndentSyntaxNodeHandler):
 
 class CxxForRangeStmtHandler(CurlyBraceBlockHandler):
     """Handler for CxxForRangeStmt nodes."""
+
+    def allowCheckChild(self, node):
+        return (node == self.node_children[-1])
+
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_blocks)
 
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
@@ -1517,7 +1541,6 @@ class WhileStmtHandler(CurlyBraceBlockHandler):
 # Code For Indentation Check
 # ============================================================================
 
-
 def getHandler(indentation_check, node, parent):
     # Get node kind name as UPPER_CASE, get class name and class object.
     kind_name = repr(str(node.kind)).split('.')[-1]
@@ -1849,27 +1872,47 @@ class IndentationCheck(lc.TreeCheck):
         super(IndentationCheck, self).__init__()
         self.config = config
         self.handlers = []
+        self.stopped_at = None
         self.level = 0
 
     def beginTree(self, node):
-        logging.debug('IndentationCheck: BEGIN TREE(%s)', node)
+        logging.debug('IndentationCheck: BEGIN TREE(%s)', str(node))
         assert len(self.handlers) == 0
         self.handlers = [RootHandler(self)]
 
     def endTree(self, node):
-        logging.debug('IndentationCheck: END TREE(%s)', node)
+        logging.debug('IndentationCheck: END TREE(%s)', str(node))
         assert len(self.handlers) == 1
         self.handlers = []
 
     def enterNode(self, node):
         logging.debug('%sEntering Node: %s %s (%s)', '  ' * self.level, node.kind, node.spelling, node.location)
+        ##print 'len(self.handlers) ==', len(self.handlers), '\tself.level ==', self.level
+        # Check whether we stopped earlier already.
+        if self.stopped_at:
+            return
+        # Check whether the current parent handler allows checking of this node.
+        if not self.handlers[-1].allowCheckChild(node):
+            self.stopped_at = node
+            return
+        # Get handler for this node.
         handler = getHandler(self, node, self.handlers[-1])
         logging.debug('  %s[indent level=%s]', '  ' * self.level, str(handler.level))
         self.handlers.append(handler)
         if handler:
             handler.checkIndentation()
         self.level += 1
+        ##print 'len(self.handlers) ==', len(self.handlers), '\tself.level ==', self.level
 
     def exitNode(self, node):
+        ##logging.debug('%sLeaving Node: %s %s (%s)', '  ' * self.level, node.kind, node.spelling, node.location)
+        ##print 'len(self.handlers) ==', len(self.handlers), '\tself.level ==', self.level
+        # Check whether we stopped earlier and not stopped at this node.
+        if self.stopped_at:
+            if self.stopped_at == node:
+                self.stopped_at = None
+            return
+        self.stopped_at = None
         self.level -= 1
         self.handlers.pop()
+        ##print 'len(self.handlers) ==', len(self.handlers), '\tself.level ==', self.level

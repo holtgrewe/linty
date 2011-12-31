@@ -1530,9 +1530,45 @@ dynamic_cast<C *>(d);
 # Tests for the C++ for range statement handler.
 # ============================================================================
 
-# TODO(holtgrew): This is more involved, return here later.
+# Tests for the for range statement itself.
 
-def XXXtest_cxx_for_range_stmt_indent_correct():
+def test_cxx_for_range_stmt_indent_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v);
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+for (int i : v);
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 1
+
+
+# Tests for the indentation below the for range statement without braces.
+
+def test_cxx_for_range_stmt_indent_below_nobrace_correct():
     cpp_str = """
 #include <vector>
 
@@ -1548,25 +1584,524 @@ void f() {
     assert len(violations) == 0
 
 
-def XXXtest_cxx_for_range_stmt_indent_incorrect():
+def test_cxx_for_range_stmt_indent_below_nobrace_incorrect():
     cpp_str = """
 #include <vector>
 
 void f() {
     std::vector<int> v;
-for (int i : v)
-        continue;
+    for (int i : v)
+      continue;
 }
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
     # Check resulting violation.
-    print violations == 1
     assert len(violations) == 1
     v = list(violations)[0]
     assert v.rule_id == 'indent.generic'
-    assert v.line == 5
-    assert v.column == 1
+    assert v.line == 7
+    assert v.column == 7
+
+
+# Tests for the indentation below the for range statement with braces.
+
+def test_cxx_for_range_stmt_indent_below_braces_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_braces_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+      continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 7
+    assert v.column == 7
+
+
+# Tests for the indentation below the for range statement without braces with
+# different block indent settings.
+
+def test_cxx_for_range_stmt_indent_below_nobrace_indent_blocks_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_nobrace_indent_blocks_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+      continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 7
+    assert v.column == 7
+
+
+def test_cxx_for_range_stmt_indent_below_nobrace_noindent_blocks_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+    continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_nobrace_noindent_blocks_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        continue;
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 7
+    assert v.column == 9
+
+
+# Tests for the indentation below the for range statement with braces with
+# different block settings with 'next-line' and 'next-line-indent' brace
+# positions.
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_same_line_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_same_line_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+    continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 7
+
+
+def test_cxx_for_range_stmt_indent_below_braces_noindent_blocks_brace_same_line_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+    continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_same_line_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+        continue;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 7
+    assert v.column == 9
+
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+            continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+        continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 7
+    assert v.column == 9
+
+
+def test_cxx_for_range_stmt_indent_below_braces_noindent_blocks_brace_next_line_indent_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+        continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_indent_below_braces_indent_blocks_brace_next_line_indent_incorrect():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+            continue;
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 8
+    assert v.column == 13
+
+
+# Tests for the placement of the braces.
+
+def test_cxx_for_range_stmt_brace_position_same_line_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_brace_position_same_line_incorrect_opening_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+    {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 7
+    assert v.column == 5
+
+
+def test_cxx_for_range_stmt_brace_position_same_line_incorrect_closing_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='same-line',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 7
+    assert v.column == 9
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+    {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_incorrect_opening_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v) {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 6
+    assert v.column == 21
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_incorrect_closing_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+    {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line',
+            indent_statements_within_blocks=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 8
+    assert v.column == 9
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_indent_correct():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_indent_incorrect_opening_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+    {
+        }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 7
+    assert v.column == 5
+
+
+def test_cxx_for_range_stmt_brace_position_next_line_indent_incorrect_closing_brace():
+    cpp_str = """
+#include <vector>
+
+void f() {
+    std::vector<int> v;
+    for (int i : v)
+        {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_blocks='next-line-indent',
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 8
+    assert v.column == 5
 
 
 # ============================================================================
