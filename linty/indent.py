@@ -297,7 +297,7 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
             if not self.areOnSameLine(t, lbrace):
                 msg = 'Opening brace should be on the same line as the token left of it.'
                 self.logViolation('indent.brace', lbrace, msg)
-            if not self.areOnSameColumn(self.getFirstToken(), rbrace):
+            elif not self.areOnSameColumn(self.getFirstToken(), rbrace):
                 msg = 'Closing brace should be on the same column as block start.'
                 self.logViolation('indent.brace', rbrace, msg)
         elif indent_type == 'next-line':
@@ -482,11 +482,11 @@ class CompoundStmtHandler(CurlyBraceBlockHandler):
             return  # Skip checking
 
         lbrace = self.getLCurlyBrace()
+        rbrace = self.getRCurlyBrace()
         if not self.level.accept(self.expandedTabsColumnNo(lbrace)):
             msg = 'Opening brace not properly indented. Expecting one of %s.' % self.level
             self.logViolation('indent.brace', lbrace, msg)
-        rbrace = self.getRCurlyBrace()
-        if self.expandedTabsColumnNo(lbrace) != self.expandedTabsColumnNo(rbrace):
+        elif self.expandedTabsColumnNo(lbrace) != self.expandedTabsColumnNo(rbrace):
             msg = 'Closing brace must be on the same column as opening brace.'
             self.logViolation('indent.brace', rbrace, msg)
 
@@ -510,11 +510,20 @@ class ConditionalOperatorHandler(IndentSyntaxNodeHandler):
     """Handler for ConditionalOperatorHandler nodes."""
 
 
-class ConstructorHandler(IndentSyntaxNodeHandler):
+class ConstructorHandler(CurlyBraceBlockHandler):
     """Handler for Constructor nodes."""
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_function_declaration)
+
+    def additionalIndentLevels(self):
+        i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')
+        i2 = int(self.config.indent_statements_within_function_bodies)
+        return i1 + i2
 
 
 class ContinueStmtHandler(IndentSyntaxNodeHandler):
@@ -677,6 +686,13 @@ class DefaultStmtHandler(IndentSyntaxNodeHandler):
 
 class DestructorHandler(CurlyBraceBlockHandler):
     """Handler for CxxMethodHandler nodes."""
+
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_function_declaration)
 
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_function_declaration == 'next-line-indent')

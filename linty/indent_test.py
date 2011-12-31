@@ -1251,7 +1251,203 @@ void f() {
 # Tests for the constructor handler.
 # ============================================================================
 
-# TODO(holtgrew): Implement later on.
+# Tests for the indentation of first tokens.
+
+def test_constructor_handler_indent_correct():
+    cpp_str = """
+class MyClass {
+    MyClass() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_constructor_handler_indent_incorrect():
+    cpp_str = """
+class MyClass {
+MyClass() {
+}
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+# Tests for the brace positions of constructors.
+
+def test_constructor_brace_position_same_line_correct():
+    cpp_str = """
+class MyClass {
+    MyClass() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_constructor_brace_position_same_line_incorrect_opening_brace():
+    cpp_str = """
+class MyClass {
+    MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_constructor_brace_position_same_line_incorrect_closing_brace():
+    cpp_str = """
+class MyClass {
+    MyClass() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_constructor_brace_position_next_line_correct():
+    cpp_str = """
+class MyClass {
+    MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_constructor_brace_position_next_line_incorrect_first_brace_sameline():
+    cpp_str = """
+class MyClass {
+    MyClass() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 3
+    assert v.column == 15
+
+
+def test_constructor_brace_position_next_line_incorrect_first_brace_indent():
+    cpp_str = """
+class MyClass {
+    MyClass()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_constructor_brace_position_next_line_indented_correct():
+    cpp_str = """
+class MyClass {
+    MyClass()
+        {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indented'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_constructor_brace_position_next_line_indented_incorrect_first_brace():
+    cpp_str = """
+class MyClass {
+    MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_constructor_brace_position_next_line_indented_incorrect_second_brace():
+    cpp_str = """
+class MyClass {
+    MyClass()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 5
+    assert v.column == 5
 
 
 # ============================================================================
@@ -1292,11 +1488,11 @@ void f() {
 # Tests for the conversion function handler.
 # ============================================================================
 
-# TODO(holtgrew): We need more involed test here, same as for functions.
+# Tests for the indentation of first tokens.
 
-def test_conversion_function_indent_correct():
+def test_conversion_function_handler_indent_correct():
     cpp_str = """
-class C {
+class MyClass {
     operator int() {
     }
 };
@@ -1307,9 +1503,9 @@ class C {
     assert len(violations) == 0
 
 
-def test_conversion_function_indent_incorrect():
+def test_conversion_function_handler_indent_incorrect():
     cpp_str = """
-class C {
+class MyClass {
 operator int() {
 }
 };
@@ -1322,6 +1518,173 @@ operator int() {
     assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
+
+
+# Tests for the brace positions of conversion_functions.
+
+def test_conversion_function_brace_position_same_line_correct():
+    cpp_str = """
+class MyClass {
+    operator int() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_conversion_function_brace_position_same_line_incorrect_opening_brace():
+    cpp_str = """
+class MyClass {
+    operator int()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_conversion_function_brace_position_same_line_incorrect_closing_brace():
+    cpp_str = """
+class MyClass {
+    operator int() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_conversion_function_brace_position_next_line_correct():
+    cpp_str = """
+class MyClass {
+    operator int()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_conversion_function_brace_position_next_line_incorrect_first_brace_sameline():
+    cpp_str = """
+class MyClass {
+    operator int() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 3
+    assert v.column == 20
+
+
+def test_conversion_function_brace_position_next_line_incorrect_first_brace_indent():
+    cpp_str = """
+class MyClass {
+    operator int()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_conversion_function_brace_position_next_line_indented_correct():
+    cpp_str = """
+class MyClass {
+    operator int()
+        {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indented'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_conversion_function_brace_position_next_line_indented_incorrect_first_brace():
+    cpp_str = """
+class MyClass {
+    operator int()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_conversion_function_brace_position_next_line_indented_incorrect_second_brace():
+    cpp_str = """
+class MyClass {
+    operator int()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 5
+    assert v.column == 5
 
 
 # ============================================================================
@@ -2682,12 +3045,12 @@ f;
 # Tests for the destructor handler.
 # ============================================================================
 
-# TODO(holtgrew): More involved tests for destructors.
+# Tests for the indentation of first tokens.
 
-def test_destructor_indent_correct():
+def test_destructor_handler_indent_correct():
     cpp_str = """
-class C {
-    ~C() {
+class MyClass {
+    ~MyClass() {
     }
 };
 """
@@ -2697,13 +3060,12 @@ class C {
     assert len(violations) == 0
 
 
-def test_destructor_indent_incorrect():
+def test_destructor_handler_indent_incorrect():
     cpp_str = """
-class C {
-~C() {
+class MyClass {
+~MyClass() {
 }
 };
-
 """
     check = li.IndentationCheck(config=li.IndentationConfig())
     violations = lt.checkTUStr(cpp_str, ast_check=check)
@@ -2713,6 +3075,173 @@ class C {
     assert v.rule_id == 'indent.generic'
     assert v.line == 3
     assert v.column == 1
+
+
+# Tests for the brace positions of destructors.
+
+def test_destructor_brace_position_same_line_correct():
+    cpp_str = """
+class MyClass {
+    ~MyClass() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_destructor_brace_position_same_line_incorrect_opening_brace():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_destructor_brace_position_same_line_incorrect_closing_brace():
+    cpp_str = """
+class MyClass {
+    ~MyClass() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='same-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_destructor_brace_position_next_line_correct():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_destructor_brace_position_next_line_incorrect_first_brace_sameline():
+    cpp_str = """
+class MyClass {
+    ~MyClass() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 3
+    assert v.column == 16
+
+
+def test_destructor_brace_position_next_line_incorrect_first_brace_indent():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_destructor_brace_position_next_line_indented_correct():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+        {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indented'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_destructor_brace_position_next_line_indented_incorrect_first_brace():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+    {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_destructor_brace_position_next_line_indented_incorrect_second_brace():
+    cpp_str = """
+class MyClass {
+    ~MyClass()
+        {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            brace_positions_function_declaration='next-line-indent'
+        ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.brace'
+    assert v.line == 5
+    assert v.column == 5
 
 
 # ============================================================================
@@ -3106,8 +3635,6 @@ if (false) {
 # Tests for the imaginary literal handler.
 # ============================================================================
 
-# TODO(holtgrew): How to trigger this?
-
 def test_imaginary_literal_indent_correct():
     cpp_str = """
 void f() {
@@ -3140,7 +3667,8 @@ void f() {
 # Tests for the inclusion directive handler.
 # ============================================================================
 
-# TODO(holtgrew): How do we get this out of clang?
+# We can only get this out of clang through tokenization and mapping tokens back
+# to their cursor.
 
 
 # ============================================================================
@@ -3283,14 +3811,16 @@ void f() {
 # Tests for the macro definition handler.
 # ============================================================================
 
-# TODO(holtgrew): How do we get this out of clang?
+# We can only get this out of clang through tokenization and mapping tokens back
+# to their cursor.
 
 
 # ============================================================================
 # Tests for the macro instantiation handler.
 # ============================================================================
 
-# TODO(holtgrew): How do we get this out of clang?
+# We can only get this out of clang through tokenization and mapping tokens back
+# to their cursor.
 
 
 # ============================================================================
@@ -3621,7 +4151,8 @@ namespace N {
 # Tests for the namespace reference handler.
 # ============================================================================
 
-# TODO(holtgrew): This cannot be a top level statement, right?
+# This cannot appear as a "top level" node, i.e. directly inside a function,
+# namespace, or program.
 
 
 # ============================================================================
@@ -3836,14 +4367,14 @@ void f() {
 # Tests for the overloaded declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): This does not occur in correct programs, ignoring.
+# This does not occur in correct programs, ignoring.
 
 
 # ============================================================================
 # Tests for the pack expansion expression handler.
 # ============================================================================
 
-# TODO(holtgrew): As far as I can see, this cannot appear as a "top level" expression.
+# This cannot appear as a "top level" expression.
 
 
 # ============================================================================
@@ -3882,14 +4413,16 @@ void f() {
 # Tests for the parameter declaration expression handler.
 # ============================================================================
 
-# TODO(holtgrew): No top-level item.
+# This is no top-level item.
 
 
 # ============================================================================
 # Tests for the preprocessing directive handler.
 # ============================================================================
 
-# TODO(holtgrew): How to get this out of clang?
+# We can only get this out of clang through tokenization and mapping tokens back
+# to their cursor.
+
 
 # ============================================================================
 # Tests for the return statement handler.
@@ -4090,7 +4623,7 @@ switch (0) {
 # Tests for the translation unit handler.
 # ============================================================================
 
-# TODO(holtgrew): Nothing to do here, right?
+# There is nothing to do here.
 
 
 # ============================================================================
