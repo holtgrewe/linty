@@ -2967,12 +2967,10 @@ typeid(5);
 
 
 # ============================================================================
-# Tests for the C++ unary expression handler.
+# Tests for the unary expression handler.
 # ============================================================================
 
-# TODO(holtgrew): What's a C++ unary expression?
-
-def test_cxx_unary_expr_indent_correct():
+def test_unary_expr_indent_correct():
     cpp_str = """
 void f() {
     !0;
@@ -2984,7 +2982,7 @@ void f() {
     assert len(violations) == 0
 
 
-def test_cxx_unary_expr_indent_incorrect():
+def test_unary_expr_indent_incorrect():
     cpp_str = """
 void f() {
 !0;
