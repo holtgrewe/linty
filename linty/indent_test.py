@@ -3002,8 +3002,6 @@ void f() {
 # Tests for the declaration reference expression handler.
 # ============================================================================
 
-# TODO(holtgrew): When is this triggered?
-
 def test_decl_ref_indent_correct():
     cpp_str = """
 void f() {
