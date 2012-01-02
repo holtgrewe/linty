@@ -390,6 +390,9 @@ class BlockExprHandler(CurlyBraceBlockHandler):
 class BreakStmtHandler(IndentSyntaxNodeHandler):
     """Handler for BreakStmt nodes."""
 
+    def additionalIndentLevels(self):
+        return int(self.config.indent_statements_within_case_body)
+
 
 class CallExprHandler(IndentSyntaxNodeHandler):
     """Handler for CallExpr nodes."""
@@ -397,6 +400,9 @@ class CallExprHandler(IndentSyntaxNodeHandler):
 
 class CaseStmtHandler(IndentSyntaxNodeHandler):
     """Handler for CaseStmt nodes."""
+
+    def additionalIndentLevels(self):
+        return int(self.config.indent_statements_within_case_body)
 
 
 class CharacterLiteralHandler(IndentSyntaxNodeHandler):
@@ -682,6 +688,9 @@ class DeclStmtHandler(IndentSyntaxNodeHandler):
 
 class DefaultStmtHandler(IndentSyntaxNodeHandler):
     """Handler for DefaultStmt nodes."""
+
+    def additionalIndentLevels(self):
+        return int(self.config.indent_statements_within_case_body)
 
 
 class DestructorHandler(CurlyBraceBlockHandler):
@@ -1386,9 +1395,16 @@ class StructDeclHandler(ClassDeclHandler):
 class SwitchStmtHandler(CurlyBraceBlockHandler):
     """Handler for SwitchStmt nodes."""
 
+    def checkIndentation(self):
+        # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
+        # Check the start column of the class declaration.
+        self.checkStartColumn()
+        # Check position of braces.
+        self.checkCurlyBraces(self.config.brace_positions_switch_statement)
+
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_blocks == 'next-line-indent')
-        i2 = int(self.config.indent_statements_within_blocks)
+        i2 = int(self.config.indent_statements_within_switch_body)
         return i1 + i2
 
 

@@ -217,7 +217,200 @@ bar();  // relevant line
 # Tests for the case statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Continue here, this is more involved.
+def test_case_statement_indent_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_case_statement_indent_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 9
+
+
+def test_case_statement_indent_statements_within_case_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_case_statement_indent_statements_within_case_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+    i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 5
+
+
+def test_case_statement_noindent_statements_within_case_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+    i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_case_statement_noindent_statements_within_case_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 9
+
+
+def test_case_statement_indent_statements_within_switch_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        case 1:
+            i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_case_statement_indent_statements_within_switch_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+            i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 5
+
+
+def test_case_statement_noindent_statements_within_switch_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_case_statement_noindent_statements_within_switch_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        case 1:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 9
 
 
 # ============================================================================
@@ -3034,7 +3227,200 @@ f;
 # Tests for the default statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Continue here, this is more involved.
+def test_default_statement_indent_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_default_statement_indent_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 9
+
+
+def test_default_statement_indent_statements_within_case_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_default_statement_indent_statements_within_case_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+    i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 5
+
+
+def test_default_statement_noindent_statements_within_case_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+    i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_default_statement_noindent_statements_within_case_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_case_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 6
+    assert v.column == 9
+
+
+def test_default_statement_indent_statements_within_switch_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        default:
+            i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_default_statement_indent_statements_within_switch_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+            i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 5
+
+
+def test_default_statement_noindent_statements_within_switch_body_correct():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+    default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_default_statement_noindent_statements_within_switch_body_incorrect():
+    cpp_str = """
+void f() {
+    int i = 0;
+    switch (1) {
+        default:
+        i = 2;
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_statements_within_switch_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 5
+    assert v.column == 9
 
 
 # ============================================================================
