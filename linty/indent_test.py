@@ -4787,163 +4787,163 @@ void f() {
 # Tests for the Objective-C @catch statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C @finally statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C @synchronized statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C @throw statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C @try statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C autorelease pool handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C bridge cast expression handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C category declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C category implementation declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C class method declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C class reference handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C dynamic declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C encode expression handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C for collection statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C implementation declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C instance method declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C interface declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C ivar declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C message expression declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C property declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C protocol declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C protocol expression handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C protocol reference handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C selector expression handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C string literal handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C super class reference handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the Objective-C synthesized declaration handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring Objective-C for now.
+# Ignoring Objective-C for now.
 
 # ============================================================================
 # Tests for the overloaded declaration handler.
@@ -5042,21 +5042,21 @@ return;
 # Tests for the SEH except statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring SEH for now.
+# Ignoring SEH for now.
 
 
 # ============================================================================
 # Tests for the SEH finally statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring SEH for now.
+# Ignoring SEH for now.
 
 
 # ============================================================================
 # Tests for the SEH try statement handler.
 # ============================================================================
 
-# TODO(holtgrew): Ignoring SEH for now.
+# Ignoring SEH for now.
 
 
 # ============================================================================

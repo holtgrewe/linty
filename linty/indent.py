@@ -934,7 +934,7 @@ class GotoStmtHandler(IndentSyntaxNodeHandler):
 
 class IbActionAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbActionAttr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -942,7 +942,7 @@ class IbActionAttrHandler(IndentSyntaxNodeHandler):
 
 class IbOutletAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbOutletAttr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -950,7 +950,7 @@ class IbOutletAttrHandler(IndentSyntaxNodeHandler):
 
 class IbOutletCollectionAttrHandler(IndentSyntaxNodeHandler):
     """Handler for IbOutletCollectionAttr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1118,7 +1118,7 @@ class NullStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAtCatchStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAtCatchStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1126,7 +1126,7 @@ class ObjcAtCatchStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAtFinallyStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAtFinallyStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1134,7 +1134,7 @@ class ObjcAtFinallyStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAtSynchronizedStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAtSynchronizedStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1142,7 +1142,7 @@ class ObjcAtSynchronizedStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAtThrowStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAtThrowStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1150,7 +1150,7 @@ class ObjcAtThrowStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAtTryStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAtTryStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1158,7 +1158,7 @@ class ObjcAtTryStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcAutoreleasePoolStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcAutoreleasePoolStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1166,7 +1166,7 @@ class ObjcAutoreleasePoolStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcBridgeCastExprHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcBridgeCastExpr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1174,7 +1174,7 @@ class ObjcBridgeCastExprHandler(IndentSyntaxNodeHandler):
 
 class ObjcCategoryDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcCategoryDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1182,7 +1182,7 @@ class ObjcCategoryDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcCategoryImplDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcCategoryImplDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1190,7 +1190,7 @@ class ObjcCategoryImplDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcClassMethodDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcClassMethodDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1198,7 +1198,7 @@ class ObjcClassMethodDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcClassRefHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcClassRef nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1206,7 +1206,7 @@ class ObjcClassRefHandler(IndentSyntaxNodeHandler):
 
 class ObjcDynamicDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcDynamicDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1214,7 +1214,7 @@ class ObjcDynamicDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcEncodeExprHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcEncodeExpr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1222,7 +1222,7 @@ class ObjcEncodeExprHandler(IndentSyntaxNodeHandler):
 
 class ObjcForCollectionStmtHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcForCollectionStmt nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1230,7 +1230,7 @@ class ObjcForCollectionStmtHandler(IndentSyntaxNodeHandler):
 
 class ObjcImplementationDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcImplementationDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1238,7 +1238,7 @@ class ObjcImplementationDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcInstanceMethodDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcInstanceMethodDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1246,7 +1246,7 @@ class ObjcInstanceMethodDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcInterfaceDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcInterfaceDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1254,7 +1254,7 @@ class ObjcInterfaceDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcIvarDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcIvarDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1262,7 +1262,7 @@ class ObjcIvarDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcMessageExprHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcMessageExpr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1270,7 +1270,7 @@ class ObjcMessageExprHandler(IndentSyntaxNodeHandler):
 
 class ObjcPropertyDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcPropertyDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1278,7 +1278,7 @@ class ObjcPropertyDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcProtocolDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcProtocolDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1286,7 +1286,7 @@ class ObjcProtocolDeclHandler(IndentSyntaxNodeHandler):
 
 class ObjcProtocolExprHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcProtocolExpr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1294,7 +1294,7 @@ class ObjcProtocolExprHandler(IndentSyntaxNodeHandler):
 
 class ObjcProtocolRefHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcProtocolRef nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1302,7 +1302,7 @@ class ObjcProtocolRefHandler(IndentSyntaxNodeHandler):
 
 class ObjcSelectorExprHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcSelectorExpr nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1310,7 +1310,7 @@ class ObjcSelectorExprHandler(IndentSyntaxNodeHandler):
 
 class ObjcStringLiteralHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcStringLiteral nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1318,7 +1318,7 @@ class ObjcStringLiteralHandler(IndentSyntaxNodeHandler):
 
 class ObjcSuperClassRefHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcSuperClassRef nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1326,7 +1326,7 @@ class ObjcSuperClassRefHandler(IndentSyntaxNodeHandler):
 
 class ObjcSynthesizeDeclHandler(IndentSyntaxNodeHandler):
     """Handler for ObjcSynthesizedDecl nodes."""
-    # TODO(holtgrew): Ignoring Objective-C for now.
+    # Ignoring Objective-C for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1372,7 +1372,7 @@ class ReturnStmtHandler(IndentSyntaxNodeHandler):
 
 class SehExceptStmtHandler(IndentSyntaxNodeHandler):
     """Handler for SehExceptStmt nodes."""
-    # TODO(holtgrew): Ignoring SEH for now.
+    # Ignoring SEH for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1380,7 +1380,7 @@ class SehExceptStmtHandler(IndentSyntaxNodeHandler):
 
 class SehFinallyStmtHandler(IndentSyntaxNodeHandler):
     """Handler for SehFinallyStmt nodes."""
-    # TODO(holtgrew): Ignoring SEH for now.
+    # Ignoring SEH for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
@@ -1388,7 +1388,7 @@ class SehFinallyStmtHandler(IndentSyntaxNodeHandler):
 
 class SehTryStmtHandler(IndentSyntaxNodeHandler):
     """Handler for SehTryStmt nodes."""
-    # TODO(holtgrew): Ignoring SEH for now.
+    # Ignoring SEH for now.
 
     def checkIndentation(self):
         pass  # Do nothing.
