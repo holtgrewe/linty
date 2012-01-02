@@ -170,7 +170,7 @@ class IndentSyntaxNodeHandler(object):
         """
         self.checkStartColumn()
 
-    def checkStartColumn(self):
+    def checkStartColumn(self, offset=0):
         """Check the start column of the handled node for valid indentation.
 
         If the node does not start the line (i.e. there are nodes left of it on
@@ -181,8 +181,11 @@ class IndentSyntaxNodeHandler(object):
         if not self.startsLine(self.node):
             logging.debug("Node does not start line (%s).", self.node.extent)
             return
-        if not self.level.accept(self.expandedTabsColumnNo(self.node)):
-            params = (', '.join(map(str, self.level.levels)), )
+        level = self.level
+        if offset:
+            level = IndentLevel(base=self.level, offset=offset)
+        if not level.accept(self.expandedTabsColumnNo(self.node)):
+            params = (', '.join(map(str, level.levels)), )
             msg = 'Invalid indent. Expecting one of {%s}' % params
             self.logViolation('indent.generic', self.node, msg)
 
@@ -416,6 +419,12 @@ class ClassDeclHandler(CurlyBraceBlockHandler):
     specializations.
     """
 
+    def __init__(self, indentation_check, handler_name, node, parent):
+        super(ClassDeclHandler, self).__init__(indentation_check, handler_name, node, parent)
+        # This attribute is True if we already touched a visbility specifier.
+        # This is used for increasing the indent.
+        self.visibility_specifier_touched = False
+
     def checkIndentation(self):
         # TODO(holtgrew): Need to implement more involved checks, positioning of keyword etc.?
         # Check the start column of the class declaration.
@@ -426,7 +435,8 @@ class ClassDeclHandler(CurlyBraceBlockHandler):
     def additionalIndentLevels(self):
         i1 = int(self.config.brace_positions_class_struct_declaration == 'next-line-indent')
         i2 = int(self.config.indent_inside_class_struct_body)
-        return i1 + i2
+        i3 = int(self.config.indent_below_visibility_specifiers and self.visibility_specifier_touched)
+        return i1 + i2 + i3
 
 
 class ClassTemplateHandler(CurlyBraceBlockHandler):
@@ -560,10 +570,18 @@ class CxxAccessSpecDeclHandler(IndentSyntaxNodeHandler):
     """Handler for CxxAccessSpecDecl nodes."""
 
     def checkIndentation(self):
-        pass  # Do nothing.
+        """Check indentation.
 
-    # TODO(holtgrew): Should be indented by one more level if self.config.indent_visibility_specifiers.
-    # TODO(holtgrew): Adding indentation for next tokens in case of self.config.indent_below_visibility_specifiers.
+        Allowed level is shifted to the left by indentation because we increased
+        it through visibility_specifier_touched earlier.  However, this
+        increased expected level does not count for visibility specifiers
+        themselves.
+        """
+        off = 0
+        if self.config.indent_below_visibility_specifiers and self.parent.visibility_specifier_touched:
+            off = -self.config.indentation_size
+        self.checkStartColumn(offset=off)
+        self.parent.visibility_specifier_touched = True
 
 
 class CxxBaseSpecifierHandler(IndentSyntaxNodeHandler):

@@ -1916,7 +1916,180 @@ void f() {
 # Tests for the C++ access specifier handler.
 # ============================================================================
 
-# TODO(holtgrew): This is more involved, return here later.
+def test_cxx_visiblity_specifier_indent_correct():
+    cpp_str = """
+class C {
+    public:
+        void foo() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_visiblity_specifier_indent_incorrect():
+    cpp_str = """
+class C {
+public:
+        void foo() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+def test_cxx_visiblity_specifier_indent_below_visibility_specifiers_correct():
+    cpp_str = """
+class C {
+    public:
+        void foo() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_below_visibility_specifiers=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_visiblity_specifier_indent_below_visibility_specifiers_incorrect():
+    cpp_str = """
+class C {
+    public:
+    void foo() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_below_visibility_specifiers=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 5
+
+
+def test_cxx_visiblity_specifier_noindent_below_visibility_specifiers_correct():
+    cpp_str = """
+class C {
+    public:
+    void foo() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_below_visibility_specifiers=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_visiblity_specifier_noindent_below_visibility_specifiers_incorrect():
+    cpp_str = """
+class C {
+    public:
+        void foo() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_below_visibility_specifiers=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 9
+
+
+def test_cxx_visiblity_specifier_indent_inside_class_struct_body_correct():
+    cpp_str = """
+class C {
+    public:
+        void f() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_inside_class_struct_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_visiblity_specifier_indent_inside_class_struct_body_incorrect():
+    cpp_str = """
+class C {
+public:
+        void f() {
+        }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_inside_class_struct_body=True
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 1
+
+
+def test_cxx_visiblity_specifier_noindent_inside_class_struct_body_correct():
+    cpp_str = """
+class C {
+public:
+    void foo() {
+    }
+};
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_inside_class_struct_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_cxx_visiblity_specifier_noindent_inside_class_struct_body_incorrect():
+    cpp_str = """
+class C {
+    public:
+    void foo() {
+    }
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig(
+            indent_inside_class_struct_body=False
+            ))
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 3
+    assert v.column == 5
 
 
 # ============================================================================
