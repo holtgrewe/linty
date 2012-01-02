@@ -10,7 +10,34 @@ import sys
 # Tests for the address label expression handler.
 # ============================================================================
 
-# TODO(holtgrew): Decide what to do with this.
+def test_address_label_expression_indent_correct():
+    cpp_str = """
+void f() {
+label:
+    &&label;  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 0
+
+
+def test_address_label_expression_indent_incorrect():
+    cpp_str = """
+void f() {
+label:
+&&label;  // relevant line
+}
+"""
+    check = li.IndentationCheck(config=li.IndentationConfig())
+    violations = lt.checkTUStr(cpp_str, ast_check=check)
+    # Check resulting violation.
+    assert len(violations) == 1
+    v = list(violations)[0]
+    assert v.rule_id == 'indent.generic'
+    assert v.line == 4
+    assert v.column == 1
 
 
 # ============================================================================

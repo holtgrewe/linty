@@ -369,7 +369,6 @@ class CurlyBraceBlockHandler(IndentSyntaxNodeHandler):
 
 class AddrLabelExprHandler(IndentSyntaxNodeHandler):
     """Handler for AddrLabelExpr nodes."""
-    # TODO(holtgrew): Decide what to do with this.
 
 
 class ArraySubscriptExprHandler(IndentSyntaxNodeHandler):
