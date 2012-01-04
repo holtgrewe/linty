@@ -147,7 +147,7 @@ class IndentSyntaxNodeHandler(object):
         """Log a rule violation with the given type, location, and text."""
         file_name = None
         if node.extent.start.file is not None:
-            file_name = node.extent.start.file.name
+            file_name = str(node.extent.start.file.name)
         v = lv.RuleViolation(rule_type, file_name, node.extent.start.line,
                              node.extent.start.column, text)
         self.violations.add(v)
